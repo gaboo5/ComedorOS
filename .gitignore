@@ -1,0 +1,17 @@
+# Variables de entorno / secretos
+.env
+*.env.local
+
+# Dependencias
+node_modules/
+__pycache__/
+venv/
+env/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
