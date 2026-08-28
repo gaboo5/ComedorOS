@@ -48,3 +48,37 @@ def dashboard(request):
         'balance': (facturado_interno + facturado_externo) - (costo_interno + costo_externo),
     }
     return render(request, 'eventos/dashboard.html', context)
+
+from django.shortcuts import redirect, get_object_or_404
+from .forms import EventoForm
+
+
+def evento_crear(request):
+    if request.method == 'POST':
+        form = EventoForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('agenda')
+    else:
+        form = EventoForm()
+    return render(request, 'eventos/evento_form.html', {'form': form, 'titulo': 'Nuevo evento'})
+
+
+def evento_editar(request, pk):
+    evento = get_object_or_404(Evento, pk=pk)
+    if request.method == 'POST':
+        form = EventoForm(request.POST, instance=evento)
+        if form.is_valid():
+            form.save()
+            return redirect('agenda')
+    else:
+        form = EventoForm(instance=evento)
+    return render(request, 'eventos/evento_form.html', {'form': form, 'titulo': 'Editar evento'})
+
+
+def evento_eliminar(request, pk):
+    evento = get_object_or_404(Evento, pk=pk)
+    if request.method == 'POST':
+        evento.delete()
+        return redirect('agenda')
+    return render(request, 'eventos/evento_confirmar_eliminar.html', {'evento': evento})

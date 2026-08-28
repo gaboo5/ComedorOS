@@ -1,0 +1,10 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>¿Eliminar evento?</h2>
+<p>Estás por eliminar: <strong>{{ evento.nombre }}</strong> ({{ evento.fecha }}). Esta acción no se puede deshacer.</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+    <a href="{% url 'agenda' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

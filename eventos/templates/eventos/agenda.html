@@ -2,6 +2,8 @@
 {% block content %}
 <h2>Agenda de Eventos</h2>
 
+<a href="{% url 'evento_crear' %}" class="btn btn-success mb-3">+ Nuevo evento</a>
+
 <form method="get" class="mb-3">
     <select name="periodo" class="form-select w-auto d-inline-block" onchange="this.form.submit()">
         <option value="">Todos los períodos</option>
@@ -16,6 +18,7 @@
         <tr>
             <th>Fecha</th><th>Evento</th><th>Tipo</th><th>Origen</th><th>Estado</th>
         </tr>
+        <th>Fecha</th><th>Evento</th><th>Tipo</th><th>Origen</th><th>Estado</th><th>Acciones</th>
     </thead>
     <tbody>
         {% for e in eventos %}
@@ -25,6 +28,11 @@
             <td>{{ e.tipo }}</td>
             <td>{{ e.get_origen_display }}</td>
             <td>{{ e.get_estado_facturacion_display }}</td>
+            <td>{{ e.get_estado_facturacion_display }}</td>
+<td>
+    <a href="{% url 'evento_editar' e.pk %}" class="btn btn-sm btn-outline-primary">Editar</a>
+    <a href="{% url 'evento_eliminar' e.pk %}" class="btn btn-sm btn-outline-danger">Eliminar</a>
+</td>
         </tr>
         {% empty %}
         <tr><td colspan="5" class="text-center text-muted">No hay eventos cargados todavía</td></tr>
