@@ -28,7 +28,7 @@
             <td>{{ e.tipo }}</td>
             <td>{{ e.get_origen_display }}</td>
             <td>{{ e.get_estado_facturacion_display }}</td>
-            <td>{{ e.get_estado_facturacion_display }}</td>
+            <td>{{ e.get_estado_evento_display }}</td>
 <td>
     <a href="{% url 'evento_editar' e.pk %}" class="btn btn-sm btn-outline-primary">Editar</a>
     <a href="{% url 'evento_eliminar' e.pk %}" class="btn btn-sm btn-outline-danger">Eliminar</a>
