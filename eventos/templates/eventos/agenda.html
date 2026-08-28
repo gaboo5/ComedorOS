@@ -1,0 +1,34 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>Agenda de Eventos</h2>
+
+<form method="get" class="mb-3">
+    <select name="periodo" class="form-select w-auto d-inline-block" onchange="this.form.submit()">
+        <option value="">Todos los períodos</option>
+        {% for p in periodos %}
+            <option value="{{ p.id }}" {% if periodo_seleccionado == p.id|stringformat:"s" %}selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+    </select>
+</form>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Fecha</th><th>Evento</th><th>Tipo</th><th>Origen</th><th>Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for e in eventos %}
+        <tr>
+            <td>{{ e.fecha }}</td>
+            <td>{{ e.nombre }}</td>
+            <td>{{ e.tipo }}</td>
+            <td>{{ e.get_origen_display }}</td>
+            <td>{{ e.get_estado_facturacion_display }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted">No hay eventos cargados todavía</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

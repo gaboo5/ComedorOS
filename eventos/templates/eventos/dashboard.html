@@ -1,0 +1,49 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>Indicadores</h2>
+
+<form method="get" class="mb-3">
+    <select name="periodo" class="form-select w-auto d-inline-block" onchange="this.form.submit()">
+        <option value="">Todos los períodos</option>
+        {% for p in periodos %}
+            <option value="{{ p.id }}" {% if periodo_seleccionado == p.id|stringformat:"s" %}selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+    </select>
+</form>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card"><div class="card-body">
+            <h6>Total de eventos</h6>
+            <p class="fs-3">{{ total_eventos }}</p>
+            <small class="text-muted">Internos: {{ total_internos }} — Externos: {{ total_externos }}</small>
+        </div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card"><div class="card-body">
+            <h6>Facturación</h6>
+            <p class="fs-3">{{ cobrados }} cobrados / {{ pendientes }} pendientes</p>
+        </div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card"><div class="card-body">
+            <h6>Balance económico-financiero</h6>
+            <p class="fs-3">${{ balance }}</p>
+        </div></div>
+    </div>
+    <div class="col-md-6">
+        <div class="card"><div class="card-body">
+            <h6>Margen — Interno</h6>
+            <p class="fs-4">${{ margen_interno }}</p>
+            <small class="text-muted">Costo: ${{ costo_interno }}</small>
+        </div></div>
+    </div>
+    <div class="col-md-6">
+        <div class="card"><div class="card-body">
+            <h6>Margen — Externo</h6>
+            <p class="fs-4">${{ margen_externo }}</p>
+            <small class="text-muted">Costo: ${{ costo_externo }}</small>
+        </div></div>
+    </div>
+</div>
+{% endblock %}
