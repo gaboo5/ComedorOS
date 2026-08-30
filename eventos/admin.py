@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Periodo, TipoEvento, TipoServicio, Evento, DetalleCosto,
-    ItemPrecio, Presupuesto, ItemPresupuesto
+    ItemPrecio, Extra, Presupuesto, OpcionMenu
 )
 
 
@@ -17,13 +17,17 @@ class EventoAdmin(admin.ModelAdmin):
     search_fields = ['nombre', 'cliente', 'solicitante']
 
 
-class ItemPresupuestoInline(admin.TabularInline):
-    model = ItemPresupuesto
+class OpcionMenuInline(admin.StackedInline):
+    model = OpcionMenu
     extra = 1
+    fk_name = 'presupuesto'
 
 
 class PresupuestoAdmin(admin.ModelAdmin):
-    inlines = [ItemPresupuestoInline]
+    inlines = [OpcionMenuInline]
+    list_display = ['evento', 'lugar', 'fecha_creacion']
+    filter_horizontal = ['extras_incluidos']
+    autocomplete_fields = ['evento']
 
 
 admin.site.register(Periodo)
@@ -31,4 +35,5 @@ admin.site.register(TipoEvento)
 admin.site.register(TipoServicio)
 admin.site.register(Evento, EventoAdmin)
 admin.site.register(ItemPrecio)
+admin.site.register(Extra)
 admin.site.register(Presupuesto, PresupuestoAdmin)

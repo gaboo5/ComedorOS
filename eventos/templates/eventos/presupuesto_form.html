@@ -1,0 +1,52 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>Nuevo Presupuesto</h2>
+<form method="post">
+    {% csrf_token %}
+
+    <h5 class="mt-3">Datos del servicio</h5>
+    {% for field in evento_form %}
+    <div class="mb-3">
+        <label class="form-label">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+    </div>
+    {% endfor %}
+
+    <h5 class="mt-4">Lugar y extras</h5>
+    {% for field in presupuesto_form %}
+    <div class="mb-3">
+        <label class="form-label">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+    </div>
+    {% endfor %}
+
+    <h5 class="mt-4">Opciones de menú</h5>
+    {{ formset.management_form }}
+    {% for opcion_form in formset %}
+    <div class="border rounded p-3 mb-3">
+        <div class="row">
+            <div class="col-md-4 mb-2">
+                <label class="form-label">Nombre</label>
+                {{ opcion_form.nombre }}
+            </div>
+            <div class="col-md-4 mb-2">
+                <label class="form-label">Precio por persona</label>
+                {{ opcion_form.precio_por_persona }}
+            </div>
+            <div class="col-md-2 mb-2">
+                <label class="form-label">Orden</label>
+                {{ opcion_form.orden }}
+            </div>
+        </div>
+        <label class="form-label">Detalle del menú (un plato por línea)</label>
+        {{ opcion_form.detalle_menu }}
+        {% if opcion_form.errors %}<div class="text-danger small">{{ opcion_form.errors }}</div>{% endif %}
+    </div>
+    {% endfor %}
+
+    <button type="submit" class="btn btn-primary">Guardar presupuesto</button>
+    <a href="{% url 'agenda' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

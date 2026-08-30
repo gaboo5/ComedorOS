@@ -76,7 +76,12 @@ class Evento(models.Model):
         return self.precio_facturado - self.costo
 
     def __str__(self):
-        return f"{self.nombre} ({self.fecha})"
+        partes = [self.fecha.strftime('%d/%m/%Y')]
+        if self.tipo_servicio:
+            partes.append(str(self.tipo_servicio))
+        if self.cliente:
+            partes.append(self.cliente)
+        return ' - '.join(partes)
 
 
 class DetalleCosto(models.Model):
@@ -97,37 +102,71 @@ class DetalleCosto(models.Model):
 
 
 class ItemPrecio(models.Model):
-    """Catálogo de precios por ítem o servicio, actualizable en el tiempo."""
+    """Catálogo de precios de referencia, actualizable en el tiempo. Es independiente del presupuesto
+    (cada presupuesto define su propio precio por persona en cada opción de menú)."""
     nombre = models.CharField(max_length=200)
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
     unidad = models.CharField(max_length=50, blank=True, help_text="Ej: por persona, por evento, por hora")
     activo = models.BooleanField(default=True)
+    actualizado = models.DateField(auto_now=True)
+
+    class Meta:
+        ordering = ['nombre']
 
     def __str__(self):
         return f"{self.nombre} - ${self.precio_unitario}"
 
 
+class Extra(models.Model):
+    """Catálogo de extras/servicios que se pueden incluir en un presupuesto: vajilla, jugo, agua, mozos, etc."""
+    nombre = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ['nombre']
+
+    def __str__(self):
+        return self.nombre
+
+
 class Presupuesto(models.Model):
+    """Presupuesto de un evento: lugar, extras incluidos y 2-3 opciones de menú con precio por persona."""
     evento = models.OneToOneField(Evento, on_delete=models.CASCADE, related_name='presupuesto')
     fecha_creacion = models.DateField(auto_now_add=True)
+    lugar = models.CharField(max_length=200, blank=True)
+    extras_incluidos = models.ManyToManyField(Extra, blank=True, related_name='presupuestos')
+    otros_extras = models.TextField(blank=True, help_text="Cualquier extra que no esté en la lista de arriba.")
+    cantidad_personas_celiaco = models.IntegerField(default=0)
+    recargo_celiaco_por_persona = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    opcion_elegida = models.ForeignKey(
+        'OpcionMenu', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', help_text="Se completa cuando el cliente confirma cuál opción eligió."
+    )
     observaciones = models.TextField(blank=True)
 
     @property
     def total(self):
-        return sum((item.subtotal for item in self.items.all()), 0)
+        """Total estimado: precio por persona de la opción elegida × cantidad de personas, + recargo celíaco."""
+        if not self.opcion_elegida or not self.evento.cantidad_personas:
+            return None
+        personas_comunes = self.evento.cantidad_personas - self.cantidad_personas_celiaco
+        base = self.opcion_elegida.precio_por_persona * personas_comunes
+        recargo = (self.opcion_elegida.precio_por_persona + self.recargo_celiaco_por_persona) * self.cantidad_personas_celiaco
+        return base + recargo
 
     def __str__(self):
         return f"Presupuesto - {self.evento.nombre}"
 
 
-class ItemPresupuesto(models.Model):
-    presupuesto = models.ForeignKey(Presupuesto, on_delete=models.CASCADE, related_name='items')
-    item_precio = models.ForeignKey(ItemPrecio, on_delete=models.PROTECT)
-    cantidad = models.DecimalField(max_digits=10, decimal_places=2, default=1)
+class OpcionMenu(models.Model):
+    """Una opción de menú dentro de un presupuesto (Opción 1, 2, 3...), con su detalle y precio por persona."""
+    presupuesto = models.ForeignKey(Presupuesto, on_delete=models.CASCADE, related_name='opciones')
+    nombre = models.CharField(max_length=50, help_text="Ej: Opción 1")
+    detalle_menu = models.TextField(help_text="Un plato por línea.")
+    precio_por_persona = models.DecimalField(max_digits=10, decimal_places=2)
+    orden = models.IntegerField(default=0)
 
-    @property
-    def subtotal(self):
-        return self.cantidad * self.item_precio.precio_unitario
+    class Meta:
+        ordering = ['orden', 'id']
 
     def __str__(self):
-        return f"{self.item_precio.nombre} x {self.cantidad}"
+        return f"{self.nombre} - {self.presupuesto.evento.nombre}"

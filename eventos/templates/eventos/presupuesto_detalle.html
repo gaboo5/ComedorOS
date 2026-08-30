@@ -1,0 +1,38 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>Presupuesto - {{ presupuesto.evento }}</h2>
+<a href="{% url 'presupuesto_editar' presupuesto.pk %}" class="btn btn-primary mb-3">Editar</a>
+<a href="{% url 'presupuesto_exportar_word' presupuesto.pk %}" class="btn btn-success mb-3">Exportar a Word</a>
+<a href="{% url 'presupuesto_lista' %}" class="btn btn-secondary mb-3">Volver al listado</a>
+
+<p><strong>Lugar:</strong> {{ presupuesto.lugar|default:"-" }}</p>
+<p><strong>Solicitante:</strong> {{ presupuesto.evento.solicitante|default:"-" }}</p>
+<p><strong>Cantidad de personas:</strong> {{ presupuesto.evento.cantidad_personas|default:"-" }}
+   ({{ presupuesto.cantidad_personas_celiaco }} celíacos)</p>
+
+<p><strong>Extras incluidos:</strong>
+{% for extra in presupuesto.extras_incluidos.all %}{{ extra }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}
+</p>
+{% if presupuesto.otros_extras %}<p><strong>Otros extras:</strong> {{ presupuesto.otros_extras }}</p>{% endif %}
+
+<h5 class="mt-4">Opciones de menú</h5>
+<div class="row">
+    {% for opcion in presupuesto.opciones.all %}
+    <div class="col-md-4 mb-3">
+        <div class="card {% if presupuesto.opcion_elegida_id == opcion.id %}border-success{% endif %}">
+            <div class="card-body">
+                <h6>{{ opcion.nombre }} {% if presupuesto.opcion_elegida_id == opcion.id %}<span class="badge bg-success">Elegida</span>{% endif %}</h6>
+                <p style="white-space: pre-line">{{ opcion.detalle_menu }}</p>
+                <strong>${{ opcion.precio_por_persona }} por persona</strong>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if presupuesto.total %}
+<h5 class="mt-3">Total estimado: ${{ presupuesto.total }}</h5>
+{% endif %}
+
+{% if presupuesto.observaciones %}<p class="mt-3"><strong>Observaciones:</strong> {{ presupuesto.observaciones }}</p>{% endif %}
+{% endblock %}

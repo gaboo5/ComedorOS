@@ -1,0 +1,30 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>Presupuestos</h2>
+<a href="{% url 'presupuesto_crear' %}" class="btn btn-primary mb-3">+ Nuevo presupuesto</a>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Fecha</th><th>Servicio</th><th>Cliente</th><th>Lugar</th><th>Opción elegida</th><th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in presupuestos %}
+        <tr>
+            <td>{{ p.evento.fecha }}</td>
+            <td>{{ p.evento.tipo_servicio|default:"-" }}</td>
+            <td>{{ p.evento.cliente|default:"-" }}</td>
+            <td>{{ p.lugar|default:"-" }}</td>
+            <td>{{ p.opcion_elegida|default:"Sin definir" }}</td>
+            <td>
+                <a href="{% url 'presupuesto_detalle' p.pk %}" class="btn btn-sm btn-outline-secondary">Ver</a>
+                <a href="{% url 'presupuesto_editar' p.pk %}" class="btn btn-sm btn-outline-primary">Editar</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted">No hay presupuestos cargados todavía</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
