@@ -23,6 +23,17 @@ class TipoEvento(models.Model):
         return self.nombre
 
 
+class TipoServicio(models.Model):
+    """Cafetería, Ágape, Almuerzo, Solo Salón, etc. — catálogo libre, se completa con el uso."""
+    nombre = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ['nombre']
+
+    def __str__(self):
+        return self.nombre
+
+
 class Evento(models.Model):
     ESTADO_FACTURACION = [
         ('pendiente', 'Pendiente'),
@@ -40,14 +51,25 @@ class Evento(models.Model):
     ]
 
     nombre = models.CharField(max_length=200)
-    tipo = models.ForeignKey(TipoEvento, on_delete=models.PROTECT)
+    tipo = models.ForeignKey(TipoEvento, on_delete=models.PROTECT, null=True, blank=True)
+    tipo_servicio = models.ForeignKey(TipoServicio, on_delete=models.PROTECT, null=True, blank=True)
     periodo = models.ForeignKey(Periodo, on_delete=models.PROTECT)
-    origen = models.CharField(max_length=10, choices=ORIGEN)
+    origen = models.CharField(max_length=10, choices=ORIGEN, default='interno')
     fecha = models.DateField()
+
+    cliente = models.CharField(max_length=200, blank=True)
+    solicitante = models.CharField(max_length=200, blank=True)
+    cantidad_personas = models.IntegerField(null=True, blank=True)
+
     costo = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     precio_facturado = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     estado_facturacion = models.CharField(max_length=10, choices=ESTADO_FACTURACION, default='pendiente')
     estado_evento = models.CharField(max_length=15, choices=ESTADO_EVENTO, default='presupuestado')
+
+    nro_factura = models.CharField(max_length=50, blank=True)
+    nro_recibo = models.CharField(max_length=50, blank=True)
+    expediente = models.CharField(max_length=50, blank=True)
+    nro_comprobante = models.CharField(max_length=50, blank=True)
 
     @property
     def margen(self):
@@ -55,6 +77,23 @@ class Evento(models.Model):
 
     def __str__(self):
         return f"{self.nombre} ({self.fecha})"
+
+
+class DetalleCosto(models.Model):
+    """Desglose del costo total de un evento. Opcional: no todos los eventos lo van a tener."""
+    evento = models.OneToOneField(Evento, on_delete=models.CASCADE, related_name='detalle_costo')
+    manteleria = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    materia_prima = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    personal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    planilla = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    varios = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    @property
+    def total(self):
+        return self.manteleria + self.materia_prima + self.personal + self.planilla + self.varios
+
+    def __str__(self):
+        return f"Detalle de costo - {self.evento.nombre}"
 
 
 class ItemPrecio(models.Model):
