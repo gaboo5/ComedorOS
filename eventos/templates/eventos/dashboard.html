@@ -11,6 +11,10 @@
     </select>
 </form>
 
+{% if periodo_seleccionado %}
+<a href="{% url 'informe_gestion_detalle' periodo_seleccionado %}" class="btn btn-outline-primary mb-3">Ver informe de gestión de este período</a>
+{% endif %}
+
 <div class="row g-3">
     <div class="col-md-4">
         <div class="card"><div class="card-body">

@@ -270,3 +270,153 @@ def presupuesto_exportar_word(request, pk):
     )
     response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
     return response
+
+from django.db.models import Sum, Count
+from .models import InformeGestion
+from .forms import InformeGestionForm
+
+
+def calcular_indicadores_periodo(periodo):
+    eventos = Evento.objects.filter(periodo=periodo)
+
+    totales = eventos.aggregate(
+        total_costo=Sum('costo'),
+        total_facturado=Sum('precio_facturado'),
+        total_personas=Sum('cantidad_personas'),
+    )
+    costo = totales['total_costo'] or 0
+    facturado = totales['total_facturado'] or 0
+
+    servicios_por_tipo = list(
+        eventos.exclude(tipo_servicio__isnull=True)
+        .values('tipo_servicio__nombre')
+        .annotate(cantidad=Count('id'))
+        .order_by('-cantidad')
+    )
+
+    unidades_destino = eventos.exclude(cliente='').values('cliente').distinct().count()
+
+    return {
+        'periodo': periodo,
+        'total_eventos': eventos.count(),
+        'internos': eventos.filter(origen='interno').count(),
+        'externos': eventos.filter(origen='externo').count(),
+        'total_personas': totales['total_personas'] or 0,
+        'costo_total': costo,
+        'facturado_total': facturado,
+        'margen_total': facturado - costo,
+        'cobrados': eventos.filter(estado_facturacion='cobrado').count(),
+        'pendientes': eventos.filter(estado_facturacion='pendiente').count(),
+        'servicios_por_tipo': servicios_por_tipo,
+        'unidades_destino': unidades_destino,
+    }
+
+
+def informe_gestion_detalle(request, periodo_id):
+    periodo = get_object_or_404(Periodo, pk=periodo_id)
+    indicadores = calcular_indicadores_periodo(periodo)
+    informe, _ = InformeGestion.objects.get_or_create(periodo=periodo)
+
+    return render(request, 'eventos/informe_gestion_detalle.html', {
+        'indicadores': indicadores,
+        'informe': informe,
+    })
+
+
+def informe_gestion_form(request, periodo_id):
+    periodo = get_object_or_404(Periodo, pk=periodo_id)
+    informe, _ = InformeGestion.objects.get_or_create(periodo=periodo)
+
+    if request.method == 'POST':
+        form = InformeGestionForm(request.POST, instance=informe)
+        if form.is_valid():
+            form.save()
+            return redirect('informe_gestion_detalle', periodo_id=periodo.id)
+    else:
+        form = InformeGestionForm(instance=informe)
+
+    return render(request, 'eventos/informe_gestion_form.html', {'form': form, 'periodo': periodo})
+
+def informe_gestion_exportar_word(request, periodo_id):
+    periodo = get_object_or_404(Periodo, pk=periodo_id)
+    indicadores = calcular_indicadores_periodo(periodo)
+    informe, _ = InformeGestion.objects.get_or_create(periodo=periodo)
+
+    doc = Document()
+
+    titulo = doc.add_paragraph()
+    titulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = titulo.add_run(f'INFORME DE GESTIÓN — {periodo}')
+    run.bold = True
+    run.font.size = Pt(16)
+    doc.add_paragraph()
+
+    def agregar_titulo(texto):
+        p = doc.add_paragraph()
+        r = p.add_run(texto)
+        r.bold = True
+        r.font.size = Pt(13)
+
+    def agregar_texto(texto):
+        doc.add_paragraph(texto or '(sin completar)')
+
+    agregar_titulo('1. Resumen Ejecutivo')
+    agregar_texto(informe.resumen_ejecutivo)
+
+    agregar_titulo('2. Objetivos del Período')
+    agregar_texto(informe.objetivos)
+
+    agregar_titulo('3. Indicadores Clave y Cuadro Operativo')
+    tabla = doc.add_table(rows=1, cols=3)
+    tabla.style = 'Light Grid Accent 1'
+    hdr = tabla.rows[0].cells
+    hdr[0].text, hdr[1].text, hdr[2].text = 'Categoría / Métrica', 'Detalle / Unidad', 'Total del Período'
+
+    filas = [
+        ('Eventos Atendidos', 'Internos / Externos',
+         f"{indicadores['total_eventos']} eventos ({indicadores['internos']} internos, {indicadores['externos']} externos)"),
+        ('Raciones / Menús Especiales', 'Común, vegetariano, celíaco',
+         f"{informe.raciones_comun or 0} común, {informe.raciones_vegetariano or 0} vegetariano, {informe.raciones_celiaco or 0} celíaco"),
+        ('Asistencia Estimada', 'Personas atendidas', f"{indicadores['total_personas']} personas"),
+        ('Servicios Adicionales', 'Horas extra / servicios', str(informe.servicios_adicionales_horas_extra or 0)),
+        ('Unidades de Destino', 'Facultades, dependencias, Rectorado', str(indicadores['unidades_destino'])),
+    ]
+    for cat, detalle, total in filas:
+        fila = tabla.add_row().cells
+        fila[0].text, fila[1].text, fila[2].text = cat, detalle, total
+
+    doc.add_paragraph()
+    agregar_titulo('4. Desglose de Servicios Realizados')
+    if indicadores['servicios_por_tipo']:
+        for item in indicadores['servicios_por_tipo']:
+            doc.add_paragraph(f"{item['tipo_servicio__nombre']}: {item['cantidad']} eventos", style='List Bullet')
+    else:
+        doc.add_paragraph('(sin datos de tipo de servicio para este período)')
+
+    agregar_titulo('5. Balance Económico y Financiero')
+    doc.add_paragraph(f"Presupuesto asignado: ${informe.presupuesto_asignado or 0:,.2f}")
+    doc.add_paragraph(f"Ejecución presupuestaria (costos operativos): ${indicadores['costo_total']:,.2f}")
+    doc.add_paragraph(f"Facturado: ${indicadores['facturado_total']:,.2f} "
+                       f"({indicadores['cobrados']} cobrados, {indicadores['pendientes']} pendientes)")
+    doc.add_paragraph(f"Margen / Balance: ${indicadores['margen_total']:,.2f}")
+    if informe.presupuesto_asignado:
+        porcentaje = (indicadores['costo_total'] / informe.presupuesto_asignado) * 100
+        doc.add_paragraph(f"Porcentaje de ejecución del presupuesto asignado: {porcentaje:.1f}%")
+
+    agregar_titulo('6. Logros Destacados y Mejoras Operativas')
+    agregar_texto(informe.logros_destacados)
+
+    agregar_titulo('7. Desafíos y Objetivos para el Próximo Período')
+    agregar_texto(informe.desafios_proximo_periodo)
+
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+
+    nombre_archivo = f'Informe_Gestion_{periodo.anio}_S{periodo.semestre}.docx'
+    response = HttpResponse(
+        buffer.read(),
+        content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
+    return response

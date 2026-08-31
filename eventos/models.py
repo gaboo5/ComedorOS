@@ -170,3 +170,24 @@ class OpcionMenu(models.Model):
 
     def __str__(self):
         return f"{self.nombre} - {self.presupuesto.evento.nombre}"
+
+class InformeGestion(models.Model):
+    """Datos manuales/narrativos del informe de gestión de un período. Los indicadores numéricos
+    (cantidad de eventos, balance, etc.) se calculan en vivo desde Evento y no se guardan acá."""
+    periodo = models.OneToOneField(Periodo, on_delete=models.CASCADE, related_name='informe_gestion')
+
+    presupuesto_asignado = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    servicios_adicionales_horas_extra = models.IntegerField(null=True, blank=True)
+    raciones_comun = models.IntegerField(null=True, blank=True)
+    raciones_vegetariano = models.IntegerField(null=True, blank=True)
+    raciones_celiaco = models.IntegerField(null=True, blank=True)
+
+    resumen_ejecutivo = models.TextField(blank=True)
+    objetivos = models.TextField(blank=True)
+    logros_destacados = models.TextField(blank=True)
+    desafios_proximo_periodo = models.TextField(blank=True)
+
+    actualizado = models.DateField(auto_now=True)
+
+    def __str__(self):
+        return f"Informe de gestión - {self.periodo}"

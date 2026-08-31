@@ -62,3 +62,26 @@ OpcionMenuFormSet = inlineformset_factory(
     },
     extra=3, can_delete=True
 )
+
+from .models import InformeGestion
+
+
+class InformeGestionForm(forms.ModelForm):
+    class Meta:
+        model = InformeGestion
+        fields = [
+            'presupuesto_asignado', 'servicios_adicionales_horas_extra',
+            'raciones_comun', 'raciones_vegetariano', 'raciones_celiaco',
+            'resumen_ejecutivo', 'objetivos', 'logros_destacados', 'desafios_proximo_periodo',
+        ]
+        widgets = {
+            'presupuesto_asignado': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'servicios_adicionales_horas_extra': forms.NumberInput(attrs={'class': 'form-control'}),
+            'raciones_comun': forms.NumberInput(attrs={'class': 'form-control'}),
+            'raciones_vegetariano': forms.NumberInput(attrs={'class': 'form-control'}),
+            'raciones_celiaco': forms.NumberInput(attrs={'class': 'form-control'}),
+            'resumen_ejecutivo': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'objetivos': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'logros_destacados': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'desafios_proximo_periodo': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+        }

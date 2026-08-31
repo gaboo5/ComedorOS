@@ -1,0 +1,29 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>Informe de Gestión — {{ indicadores.periodo }}</h2>
+<a href="{% url 'informe_gestion_form' indicadores.periodo.id %}" class="btn btn-primary mb-3">Editar datos manuales / textos</a>
+<a href="{% url 'informe_gestion_exportar_word' indicadores.periodo.id %}" class="btn btn-success mb-3">Exportar a Word</a>
+
+<h5>Indicadores calculados</h5>
+<ul>
+    <li>Eventos: {{ indicadores.total_eventos }} ({{ indicadores.internos }} internos, {{ indicadores.externos }} externos)</li>
+    <li>Personas atendidas: {{ indicadores.total_personas }}</li>
+    <li>Costo total: ${{ indicadores.costo_total }}</li>
+    <li>Facturado: ${{ indicadores.facturado_total }} ({{ indicadores.cobrados }} cobrados, {{ indicadores.pendientes }} pendientes)</li>
+    <li>Margen: ${{ indicadores.margen_total }}</li>
+    <li>Unidades de destino distintas: {{ indicadores.unidades_destino }}</li>
+</ul>
+
+<h5>Servicios por tipo</h5>
+<ul>
+    {% for item in indicadores.servicios_por_tipo %}
+    <li>{{ item.tipo_servicio__nombre }}: {{ item.cantidad }}</li>
+    {% empty %}
+    <li class="text-muted">Sin datos</li>
+    {% endfor %}
+</ul>
+
+<h5>Datos manuales cargados</h5>
+<p>Presupuesto asignado: {{ informe.presupuesto_asignado|default:"Sin cargar" }}</p>
+<p>Resumen ejecutivo: {{ informe.resumen_ejecutivo|default:"Sin completar"|truncatewords:20 }}</p>
+{% endblock %}

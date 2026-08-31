@@ -37,3 +37,7 @@ admin.site.register(Evento, EventoAdmin)
 admin.site.register(ItemPrecio)
 admin.site.register(Extra)
 admin.site.register(Presupuesto, PresupuestoAdmin)
+
+from .models import InformeGestion  # sumalo al import existente de arriba
+
+admin.site.register(InformeGestion)
