@@ -1,0 +1,11 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>¿Eliminar integrante?</h2>
+<p>Estás por eliminar a: <strong>{{ integrante.nombre }}</strong></p>
+<p class="text-muted">Se va a quitar como responsable de cualquier función que tuviera asignada.</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+    <a href="{% url 'integrante_lista' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>Solicitudes pendientes</h2>
+<a href="{% url 'solicitud_crear' %}" class="btn btn-primary mb-3">+ Nueva solicitud</a>
+
+<table class="table table-striped">
+    <thead>
+        <tr><th>Fecha</th><th>Servicio</th><th>Cliente</th><th>Solicitante</th><th>Personas</th><th>Notas</th><th>Acciones</th></tr>
+    </thead>
+    <tbody>
+        {% for s in solicitudes %}
+        <tr>
+            <td>{{ s.fecha }}</td>
+            <td>{{ s.tipo_servicio|default:"-" }}</td>
+            <td>{{ s.cliente|default:"-" }}</td>
+            <td>{{ s.solicitante|default:"-" }}</td>
+            <td>{{ s.cantidad_personas|default:"-" }}</td>
+            <td>{{ s.observaciones|default:"-"|truncatewords:10 }}</td>
+            <td>
+                <a href="{% url 'presupuesto_crear' %}?evento_id={{ s.pk }}" class="btn btn-sm btn-success">Presupuestar</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted">No hay solicitudes pendientes</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

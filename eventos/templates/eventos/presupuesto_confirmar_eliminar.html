@@ -1,0 +1,11 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>¿Eliminar presupuesto?</h2>
+<p>Estás por eliminar el presupuesto de: <strong>{{ presupuesto.evento }}</strong></p>
+<p class="text-muted">El evento no se elimina, solo el presupuesto (lugar, extras y opciones de menú cargadas).</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+    <a href="{% url 'presupuesto_lista' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

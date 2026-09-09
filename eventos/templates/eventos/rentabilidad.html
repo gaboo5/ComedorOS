@@ -1,0 +1,68 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>Ganancias por evento y por mes</h2>
+
+<form method="get" class="mb-3">
+    <select name="periodo" class="form-select w-auto d-inline-block" onchange="this.form.submit()">
+        <option value="">Todos los períodos</option>
+        {% for p in periodos %}
+            <option value="{{ p.id }}" {% if periodo_seleccionado == p.id|stringformat:"s" %}selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+    </select>
+</form>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h5>Total del período</h5>
+        <p class="mb-0">
+            Facturado: <strong>${{ total_general_facturado|floatformat:2 }}</strong> —
+            Costo: <strong>${{ total_general_costo|floatformat:2 }}</strong> —
+            Ganancia: <strong>${{ total_general_margen|floatformat:2 }}</strong>
+        </p>
+    </div>
+</div>
+
+{% for grupo in grupos %}
+<h5 class="mt-4 text-uppercase text-muted">{{ grupo.etiqueta }}</h5>
+<div class="table-responsive">
+<table class="table table-sm table-striped align-middle">
+    <thead>
+        <tr>
+            <th>Fecha</th><th>Cliente</th><th>Servicio</th><th>Val. x persona</th>
+            <th>Facturado</th><th>Mantelería</th><th>Mat. Prima</th><th>Personal</th>
+            <th>Planilla</th><th>Varios</th><th>Costo Total</th><th>Ganancia</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for fila in grupo.filas %}
+        <tr>
+            <td>{{ fila.evento.fecha|date:"d/m" }}</td>
+            <td>{{ fila.evento.cliente|default:"-" }}</td>
+            <td>{{ fila.evento.tipo_servicio|default:"-" }}</td>
+            <td>{% if fila.valor_por_persona %}${{ fila.valor_por_persona|floatformat:2 }}{% else %}-{% endif %}</td>
+            <td>${{ fila.evento.precio_facturado|floatformat:2 }}</td>
+            <td>{% if fila.manteleria is not None %}${{ fila.manteleria|floatformat:2 }}{% else %}-{% endif %}</td>
+            <td>{% if fila.materia_prima is not None %}${{ fila.materia_prima|floatformat:2 }}{% else %}-{% endif %}</td>
+            <td>{% if fila.personal is not None %}${{ fila.personal|floatformat:2 }}{% else %}-{% endif %}</td>
+            <td>{% if fila.planilla is not None %}${{ fila.planilla|floatformat:2 }}{% else %}-{% endif %}</td>
+            <td>{% if fila.varios is not None %}${{ fila.varios|floatformat:2 }}{% else %}-{% endif %}</td>
+            <td>${{ fila.evento.costo|floatformat:2 }}</td>
+            <td class="{% if fila.evento.margen < 0 %}text-danger{% else %}text-success{% endif %}">
+                ${{ fila.evento.margen|floatformat:2 }}
+            </td>
+        </tr>
+        {% endfor %}
+        <tr class="table-secondary fw-bold">
+            <td colspan="4">Subtotal {{ grupo.etiqueta }}</td>
+            <td>${{ grupo.total_facturado|floatformat:2 }}</td>
+            <td colspan="5"></td>
+            <td>${{ grupo.total_costo|floatformat:2 }}</td>
+            <td>${{ grupo.total_margen|floatformat:2 }}</td>
+        </tr>
+    </tbody>
+</table>
+</div>
+{% empty %}
+<p class="text-muted">No hay eventos para este filtro.</p>
+{% endfor %}
+{% endblock %}

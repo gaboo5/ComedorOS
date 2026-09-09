@@ -1,0 +1,30 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>Compra - {{ compra.fecha }}</h2>
+<a href="{% url 'compra_editar' compra.pk %}" class="btn btn-primary mb-3">Editar</a>
+<a href="{% url 'compra_lista' %}" class="btn btn-secondary mb-3">Volver</a>
+
+<p><strong>Proveedor:</strong> {{ compra.proveedor|default:"-" }}</p>
+<p><strong>Evento asociado:</strong> {{ compra.evento|default:"Compra general (no atada a un evento)" }}</p>
+
+<table class="table table-striped">
+    <thead><tr><th>Producto</th><th>Cantidad</th><th>Total pagado</th><th>Precio unitario</th></tr></thead>
+    <tbody>
+        {% for item in compra.items.all %}
+        <tr>
+            <td>{{ item.producto }}</td>
+            <td>{{ item.cantidad }} {{ item.producto.get_unidad_medida_display }}</td>
+            <td>${{ item.total_pagado|floatformat:2 }}</td>
+            <td>${{ item.precio_unitario|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="table-secondary fw-bold">
+            <td colspan="2">Total de la compra</td>
+            <td>${{ compra.total|floatformat:2 }}</td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+
+{% if compra.observaciones %}<p><strong>Observaciones:</strong> {{ compra.observaciones }}</p>{% endif %}
+{% endblock %}

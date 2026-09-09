@@ -1,0 +1,23 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>Funciones y Responsables</h2>
+<a href="{% url 'funcion_crear' %}" class="btn btn-success mb-3">+ Nueva función</a>
+<table class="table table-striped">
+    <thead><tr><th>Nº</th><th>Descripción</th><th>Responsable(s)</th><th>Acciones</th></tr></thead>
+    <tbody>
+        {% for f in funciones %}
+        <tr>
+            <td>{{ f.numero }}</td>
+            <td>{{ f.descripcion }}</td>
+            <td>{% for r in f.responsables.all %}{{ r.nombre }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}</td>
+            <td>
+                <a href="{% url 'funcion_editar' f.pk %}" class="btn btn-sm btn-outline-primary">Editar</a>
+                <a href="{% url 'funcion_eliminar' f.pk %}" class="btn btn-sm btn-outline-danger">Eliminar</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="text-center text-muted">No hay funciones cargadas</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

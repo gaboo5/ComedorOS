@@ -1,0 +1,10 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>¿Eliminar función?</h2>
+<p>Estás por eliminar: <strong>{{ funcion.numero }}. {{ funcion.descripcion|truncatewords:15 }}</strong></p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+    <a href="{% url 'funcion_lista' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

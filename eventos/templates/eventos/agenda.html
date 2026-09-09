@@ -2,42 +2,48 @@
 {% block content %}
 <h2>Agenda de Eventos</h2>
 
-<a href="{% url 'evento_crear' %}" class="btn btn-success mb-3">+ Nuevo evento</a>
-<a href="{% url 'presupuesto_crear' %}" class="btn btn-primary mb-3">+ Nuevo presupuesto</a>
-
-<form method="get" class="mb-3">
-    <select name="periodo" class="form-select w-auto d-inline-block" onchange="this.form.submit()">
+<form method="get" class="mb-3 d-flex gap-2 flex-wrap">
+    <select name="periodo" class="form-select w-auto" onchange="this.form.submit()">
         <option value="">Todos los períodos</option>
         {% for p in periodos %}
             <option value="{{ p.id }}" {% if periodo_seleccionado == p.id|stringformat:"s" %}selected{% endif %}>{{ p }}</option>
         {% endfor %}
     </select>
+    <select name="estado" class="form-select w-auto" onchange="this.form.submit()">
+        <option value="">Todos los estados</option>
+        {% for valor, etiqueta in estados_evento %}
+            <option value="{{ valor }}" {% if estado_seleccionado == valor %}selected{% endif %}>{{ etiqueta }}</option>
+        {% endfor %}
+    </select>
 </form>
 
-<table class="table table-striped">
+<a href="{% url 'evento_crear' %}" class="btn btn-success mb-3">+ Nuevo evento</a>
+
+{% for grupo in grupos %}
+<h5 class="mt-4 text-uppercase text-muted">{{ grupo.etiqueta }}</h5>
+<table class="table table-sm table-striped align-middle">
     <thead>
         <tr>
-            <th>Fecha</th><th>Evento</th><th>Tipo</th><th>Origen</th><th>Estado</th>
+            <th>Fecha</th><th>Servicio</th><th>Cliente</th><th>Estado</th><th>Facturación</th><th>Acciones</th>
         </tr>
-        <th>Fecha</th><th>Evento</th><th>Tipo</th><th>Origen</th><th>Estado</th><th>Acciones</th>
     </thead>
     <tbody>
-        {% for e in eventos %}
+        {% for e in grupo.eventos %}
         <tr>
-            <td>{{ e.fecha }}</td>
-            <td>{{ e.nombre }}</td>
-            <td>{{ e.tipo }}</td>
-            <td>{{ e.get_origen_display }}</td>
-            <td>{{ e.get_estado_facturacion_display }}</td>
-            <td>{{ e.get_estado_evento_display }}</td>
-<td>
-    <a href="{% url 'evento_editar' e.pk %}" class="btn btn-sm btn-outline-primary">Editar</a>
-    <a href="{% url 'evento_eliminar' e.pk %}" class="btn btn-sm btn-outline-danger">Eliminar</a>
-</td>
+            <td>{{ e.fecha|date:"d/m" }}</td>
+            <td>{{ e.tipo_servicio|default:"-" }}</td>
+            <td>{{ e.cliente|default:"-" }}</td>
+            <td><span class="badge bg-{{ e.color_estado_evento }}">{{ e.get_estado_evento_display }}</span></td>
+            <td><span class="badge bg-{{ e.color_estado_facturacion }}">{{ e.get_estado_facturacion_display }}</span></td>
+            <td>
+                <a href="{% url 'evento_editar' e.pk %}" class="btn btn-sm btn-outline-primary">Editar</a>
+                <a href="{% url 'evento_eliminar' e.pk %}" class="btn btn-sm btn-outline-danger">Eliminar</a>
+            </td>
         </tr>
-        {% empty %}
-        <tr><td colspan="5" class="text-center text-muted">No hay eventos cargados todavía</td></tr>
         {% endfor %}
     </tbody>
 </table>
+{% empty %}
+<p class="text-muted">No hay eventos cargados para este filtro.</p>
+{% endfor %}
 {% endblock %}

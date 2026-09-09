@@ -13,8 +13,13 @@ class DetalleCostoInline(admin.StackedInline):
 class EventoAdmin(admin.ModelAdmin):
     inlines = [DetalleCostoInline]
     list_display = ['nombre', 'fecha', 'cliente', 'origen', 'costo', 'precio_facturado', 'estado_facturacion']
-    list_filter = ['origen', 'estado_facturacion', 'periodo']
+    list_filter = ['origen', 'estado_facturacion', 'periodo', 'excluir_de_informe']
     search_fields = ['nombre', 'cliente', 'solicitante']
+
+    def save_model(self, request, obj, form, change):
+        if change:
+            obj.importado_automaticamente = False
+        super().save_model(request, obj, form, change)
 
 
 class OpcionMenuInline(admin.StackedInline):
@@ -27,7 +32,6 @@ class PresupuestoAdmin(admin.ModelAdmin):
     inlines = [OpcionMenuInline]
     list_display = ['evento', 'lugar', 'fecha_creacion']
     filter_horizontal = ['extras_incluidos']
-    autocomplete_fields = ['evento']
 
 
 admin.site.register(Periodo)
@@ -41,3 +45,26 @@ admin.site.register(Presupuesto, PresupuestoAdmin)
 from .models import InformeGestion  # sumalo al import existente de arriba
 
 admin.site.register(InformeGestion)
+
+from .models import Integrante, FuncionActividad  # sumalo al import existente
+
+admin.site.register(Integrante)
+admin.site.register(FuncionActividad)
+
+from .models import Producto, Compra, ItemCompra  # sumalo al import existente
+
+
+class ItemCompraInline(admin.TabularInline):
+    model = ItemCompra
+    extra = 1
+
+
+class CompraAdmin(admin.ModelAdmin):
+    inlines = [ItemCompraInline]
+    list_display = ['fecha', 'proveedor', 'evento']
+    list_filter = ['fecha']
+    autocomplete_fields = ['evento']
+
+
+admin.site.register(Producto)
+admin.site.register(Compra, CompraAdmin)

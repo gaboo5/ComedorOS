@@ -72,6 +72,14 @@ def inferir_origen(cliente):
             return 'interno'
     return 'externo'
 
+def obtener_o_crear_tipo_servicio(nombre):
+    """Busca un TipoServicio existente comparando sin tildes/mayúsculas, para no crear duplicados
+    por diferencias de tipeo (ej: 'Ágape' vs 'Agape'). Si no encuentra ninguno parecido, crea uno nuevo."""
+    nombre_normalizado = normalizar(nombre)
+    for tipo in TipoServicio.objects.all():
+        if normalizar(tipo.nombre) == nombre_normalizado:
+            return tipo
+    return TipoServicio.objects.create(nombre=nombre)
 
 class Command(BaseCommand):
     help = 'Importa eventos históricos desde el Excel de informes mensuales (una hoja por mes).'
@@ -161,7 +169,7 @@ class Command(BaseCommand):
 
                 with transaction.atomic():
                     periodo, _ = Periodo.objects.get_or_create(anio=fecha.year, semestre=semestre)
-                    tipo_servicio, _ = TipoServicio.objects.get_or_create(nombre=tipo_servicio_nombre)
+                    tipo_servicio = obtener_o_crear_tipo_servicio(tipo_servicio_nombre)
 
                     evento = Evento.objects.create(
                         nombre=nombre_evento,

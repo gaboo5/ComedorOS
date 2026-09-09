@@ -20,6 +20,7 @@
             <td>
                 <a href="{% url 'presupuesto_detalle' p.pk %}" class="btn btn-sm btn-outline-secondary">Ver</a>
                 <a href="{% url 'presupuesto_editar' p.pk %}" class="btn btn-sm btn-outline-primary">Editar</a>
+                <a href="{% url 'presupuesto_eliminar' p.pk %}" class="btn btn-sm btn-outline-danger">Eliminar</a>
             </td>
         </tr>
         {% empty %}

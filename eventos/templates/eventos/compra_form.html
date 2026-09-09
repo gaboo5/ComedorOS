@@ -1,0 +1,63 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>{% if editando %}Editar{% else %}Nueva{% endif %} Compra</h2>
+<form method="post" id="form-compra">
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="mb-3">
+        <label class="form-label">{{ field.label }}</label>
+        {{ field }}
+    </div>
+    {% endfor %}
+
+    <h5 class="mt-4">Productos comprados</h5>
+    {{ formset.management_form }}
+    {% for item_form in formset %}
+    <div class="border rounded p-3 mb-2 row align-items-end">
+        <div class="col-md-4">
+            <label class="form-label">Producto</label>
+            {{ item_form.producto }}
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Cantidad</label>
+            {{ item_form.cantidad }}
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Total pagado</label>
+            {{ item_form.total_pagado }}
+        </div>
+        <div class="col-md-2">
+            <span class="badge bg-info text-dark precio-unitario-preview">Precio unitario: -</span>
+        </div>
+        {% if item_form.instance.pk %}<div class="col-12 mt-2">{{ item_form.DELETE }} <label>Eliminar este ítem</label></div>{% endif %}
+    </div>
+    {% endfor %}
+
+    <button type="submit" class="btn btn-primary mt-2">Guardar compra</button>
+    <a href="{% url 'compra_lista' %}" class="btn btn-secondary mt-2">Cancelar</a>
+</form>
+
+<script>
+document.querySelectorAll('#form-compra .border.rounded').forEach(function(fila) {
+    const cantidadInput = fila.querySelector('.item-cantidad');
+    const totalInput = fila.querySelector('.item-total');
+    const preview = fila.querySelector('.precio-unitario-preview');
+
+    function actualizar() {
+        const cantidad = parseFloat(cantidadInput.value);
+        const total = parseFloat(totalInput.value);
+        if (cantidad > 0 && total >= 0) {
+            const unitario = (total / cantidad).toFixed(2);
+            preview.textContent = 'Precio unitario: $' + unitario;
+        } else {
+            preview.textContent = 'Precio unitario: -';
+        }
+    }
+
+    if (cantidadInput && totalInput) {
+        cantidadInput.addEventListener('input', actualizar);
+        totalInput.addEventListener('input', actualizar);
+    }
+});
+</script>
+{% endblock %}

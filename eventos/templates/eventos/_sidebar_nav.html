@@ -1,0 +1,29 @@
+{% load static %}
+<div class="sidebar-logo text-center mb-3">
+    <img src="{% static 'eventos/img/logo.png' %}" alt="Eventos UNCuyo">
+</div>
+
+<nav class="nav flex-column">
+    <a class="nav-link" href="{% url 'inicio' %}"><i class="bi bi-house-door me-2"></i>Inicio</a>
+
+    <div class="sidebar-heading">Eventos</div>
+    <a class="nav-link" href="{% url 'agenda' %}"><i class="bi bi-calendar3 me-2"></i>Agenda</a>
+    <a class="nav-link" href="{% url 'solicitud_lista' %}"><i class="bi bi-inbox me-2"></i>Solicitudes</a>
+    <a class="nav-link" href="{% url 'presupuesto_lista' %}"><i class="bi bi-file-earmark-text me-2"></i>Presupuestos</a>
+
+    <div class="sidebar-heading">Finanzas</div>
+    <a class="nav-link" href="{% url 'dashboard' %}"><i class="bi bi-speedometer2 me-2"></i>Indicadores</a>
+    <a class="nav-link" href="{% url 'rentabilidad' %}"><i class="bi bi-graph-up me-2"></i>Ganancias</a>
+    <a class="nav-link" href="{% url 'facturacion_mensual' %}"><i class="bi bi-receipt me-2"></i>Facturación</a>
+
+    <div class="sidebar-heading">Herramientas</div>
+    <a class="nav-link" href="{% url 'sincronizar_excel' %}"><i class="bi bi-arrow-repeat me-2"></i>Sincronizar Excel</a>
+
+    <div class="sidebar-heading">Equipo</div>
+    <a class="nav-link" href="{% url 'integrante_lista' %}"><i class="bi bi-people me-2"></i>Integrantes</a>
+    <a class="nav-link" href="{% url 'funcion_lista' %}"><i class="bi bi-list-check me-2"></i>Funciones</a>
+
+    <div class="sidebar-heading">Compras</div>
+    <a class="nav-link" href="{% url 'compra_lista' %}"><i class="bi bi-cart me-2"></i>Compras</a>
+    <a class="nav-link" href="{% url 'producto_lista' %}"><i class="bi bi-box-seam me-2"></i>Productos</a>
+</nav>

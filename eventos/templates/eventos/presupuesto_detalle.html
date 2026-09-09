@@ -2,13 +2,15 @@
 {% block content %}
 <h2>Presupuesto - {{ presupuesto.evento }}</h2>
 <a href="{% url 'presupuesto_editar' presupuesto.pk %}" class="btn btn-primary mb-3">Editar</a>
+<a href="{% url 'presupuesto_confirmar' presupuesto.pk %}" class="btn btn-outline-success mb-3">Confirmar opción elegida</a>
+<a href="{% url 'presupuesto_eliminar' presupuesto.pk %}" class="btn btn-outline-danger mb-3">Eliminar</a>
 <a href="{% url 'presupuesto_exportar_word' presupuesto.pk %}" class="btn btn-success mb-3">Exportar a Word</a>
 <a href="{% url 'presupuesto_lista' %}" class="btn btn-secondary mb-3">Volver al listado</a>
 
 <p><strong>Lugar:</strong> {{ presupuesto.lugar|default:"-" }}</p>
 <p><strong>Solicitante:</strong> {{ presupuesto.evento.solicitante|default:"-" }}</p>
-<p><strong>Cantidad de personas:</strong> {{ presupuesto.evento.cantidad_personas|default:"-" }}
-   ({{ presupuesto.cantidad_personas_celiaco }} celíacos)</p>
+<p><strong>Cantidad de personas:</strong> {{ presupuesto.total_personas }} total
+   (Regular: {{ presupuesto.cantidad_regular }}, Vegetariano: {{ presupuesto.cantidad_vegetariano }}, Celíaco: {{ presupuesto.cantidad_celiaco }})</p>
 
 <p><strong>Extras incluidos:</strong>
 {% for extra in presupuesto.extras_incluidos.all %}{{ extra }}{% if not forloop.last %}, {% endif %}{% empty %}-{% endfor %}
@@ -23,7 +25,9 @@
             <div class="card-body">
                 <h6>{{ opcion.nombre }} {% if presupuesto.opcion_elegida_id == opcion.id %}<span class="badge bg-success">Elegida</span>{% endif %}</h6>
                 <p style="white-space: pre-line">{{ opcion.detalle_menu }}</p>
-                <strong>${{ opcion.precio_por_persona }} por persona</strong>
+                <p class="mb-1"><strong>Regular:</strong> ${{ opcion.precio_regular }} por persona</p>
+                {% if opcion.precio_vegetariano %}<p class="mb-1"><strong>Vegetariano:</strong> ${{ opcion.precio_vegetariano }} por persona</p>{% endif %}
+                {% if opcion.precio_celiaco %}<p class="mb-1"><strong>Celíaco:</strong> ${{ opcion.precio_celiaco }} por persona</p>{% endif %}
             </div>
         </div>
     </div>

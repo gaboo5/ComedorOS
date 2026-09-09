@@ -1,0 +1,17 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>Nueva Solicitud</h2>
+<p class="text-muted">Anotá rápido lo que te pidieron. Más adelante lo convertís en presupuesto sin volver a cargar estos datos.</p>
+<form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="mb-3">
+        <label class="form-label">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+    </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary">Guardar solicitud</button>
+    <a href="{% url 'solicitud_lista' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}
