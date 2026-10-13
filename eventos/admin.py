@@ -68,3 +68,32 @@ class CompraAdmin(admin.ModelAdmin):
 
 admin.site.register(Producto)
 admin.site.register(Compra, CompraAdmin)
+
+from .models import PersonaEventual, Pago  # sumalo al import existente
+
+
+class PagoAdmin(admin.ModelAdmin):
+    list_display = ['fecha', 'tipo_pago', 'persona', 'evento', 'importe']
+    list_filter = ['tipo_pago', 'fecha']
+    autocomplete_fields = ['evento']
+
+
+admin.site.register(PersonaEventual, search_fields=['apellido', 'nombre', 'dni'])
+admin.site.register(Pago, PagoAdmin)
+
+from .models import ConceptoCostoPersonal, ItemCostoPersonal  # sumalo al import existente
+
+admin.site.register(ConceptoCostoPersonal)
+
+from .models import CategoriaInventario, ElementoInventario, EnvioLavanderia, Prestamo  # sumalo al import
+
+
+class ElementoInventarioAdmin(admin.ModelAdmin):
+    list_display = ['nombre', 'categoria', 'cantidad_total', 'cantidad_disponible']
+    list_filter = ['categoria']
+
+
+admin.site.register(CategoriaInventario)
+admin.site.register(ElementoInventario, ElementoInventarioAdmin)
+admin.site.register(EnvioLavanderia)
+admin.site.register(Prestamo)

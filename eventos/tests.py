@@ -1,6 +1,3 @@
-    ESTADO_EVENTO = [
-        ('presupuestado', 'Presupuestado'),
-        ('confirmado', 'Confirmado'),
-        ('realizado', 'Realizado'),
-        ('cancelado', 'Cancelado'),
-    ]
+from django.test import TestCase
+
+# Create your tests here.

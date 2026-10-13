@@ -58,6 +58,28 @@
     </div>
     {% endfor %}
 
+    <h5 class="mt-4">Costos de Personal</h5>
+    {{ formset_costo_personal.management_form }}
+    {% for item_form in formset_costo_personal %}
+    <div class="border rounded p-3 mb-2 row align-items-end">
+        <div class="col-md-4">
+            <label class="form-label">Concepto</label>
+            {{ item_form.concepto }}
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Cantidad de personas</label>
+            {{ item_form.cantidad_personas }}
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Precio por persona</label>
+            {{ item_form.precio_por_persona }}
+        </div>
+        {% if item_form.instance.pk %}
+        <div class="col-md-2">{{ item_form.DELETE }} <label>Eliminar</label></div>
+        {% endif %}
+    </div>
+    {% endfor %}
+
     <button type="submit" class="btn btn-primary">Guardar presupuesto</button>
     <a href="{% url 'agenda' %}" class="btn btn-secondary">Cancelar</a>
 </form>

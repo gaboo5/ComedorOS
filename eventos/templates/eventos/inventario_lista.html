@@ -1,0 +1,31 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>Inventario</h2>
+<form method="get" class="mb-3">
+    <select name="categoria" class="form-select w-auto d-inline-block" onchange="this.form.submit()">
+        <option value="">Todas las categorías</option>
+        {% for c in categorias %}
+        <option value="{{ c.id }}" {% if categoria_seleccionada == c.id|stringformat:"s" %}selected{% endif %}>{{ c.nombre }}</option>
+        {% endfor %}
+    </select>
+</form>
+<a href="{% url 'inventario_crear' %}" class="btn btn-success mb-3">+ Nuevo elemento</a>
+<table class="table table-striped">
+    <thead><tr><th>Elemento</th><th>Categoría</th><th>Total</th><th>En lavandería</th><th>Prestado</th><th>Disponible</th><th>Acciones</th></tr></thead>
+    <tbody>
+        {% for e in elementos %}
+        <tr>
+            <td>{{ e.nombre }}</td>
+            <td>{{ e.categoria }}</td>
+            <td>{{ e.cantidad_total }}</td>
+            <td>{{ e.cantidad_en_lavanderia }}</td>
+            <td>{{ e.cantidad_prestada }}</td>
+            <td class="{% if e.cantidad_disponible <= 0 %}text-danger fw-bold{% endif %}">{{ e.cantidad_disponible }}</td>
+            <td><a href="{% url 'inventario_editar' e.pk %}" class="btn btn-sm btn-outline-primary">Editar</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted">No hay elementos cargados</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

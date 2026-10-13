@@ -1,0 +1,98 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>{% if editando %}Editar{% else %}Nuevo{% endif %} Envío a Lavandería</h2>
+<p class="text-muted">Dejá "Fecha de retorno" vacía si todavía no volvió. Subí la factura cuando la lavandería la entregue.</p>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="mb-3">
+        <label class="form-label">{{ field.label }}</label>
+        {{ field }}
+    </div>
+    {% endfor %}
+
+    <h5 class="mt-4">Elementos enviados</h5>
+    {{ formset.management_form }}
+
+    <div id="items-container">
+        {% for item_form in formset %}
+        <div class="row mb-2 align-items-end formset-row">
+            <div class="col-md-6">
+                <label class="form-label">Elemento</label>
+                {{ item_form.elemento }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Cantidad</label>
+                {{ item_form.cantidad }}
+            </div>
+            <div class="col-md-2">
+                {% if item_form.instance.pk %}
+                    <div class="d-none">{{ item_form.DELETE }}</div>
+                    <button type="button" class="btn btn-outline-danger btn-sm btn-quitar-existente">Quitar</button>
+                {% else %}
+                    <button type="button" class="btn btn-outline-danger btn-sm btn-quitar-nueva">Quitar</button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <button type="button" id="btn-agregar-elemento" class="btn btn-outline-primary btn-sm mb-3">+ Agregar elemento</button>
+
+    <div id="template-fila" class="d-none">
+        <div class="row mb-2 align-items-end formset-row">
+            <div class="col-md-6">
+                <label class="form-label">Elemento</label>
+                {{ formset.empty_form.elemento }}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Cantidad</label>
+                {{ formset.empty_form.cantidad }}
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-outline-danger btn-sm btn-quitar-nueva">Quitar</button>
+            </div>
+        </div>
+    </div>
+
+    <br>
+    <button type="submit" class="btn btn-primary mt-3">Guardar</button>
+    <a href="{% url 'lavanderia_lista' %}" class="btn btn-secondary mt-3">Cancelar</a>
+</form>
+
+<script>
+(function() {
+    const totalFormsInput = document.querySelector('input[name$="-TOTAL_FORMS"]');
+    const container = document.getElementById('items-container');
+    const template = document.getElementById('template-fila').innerHTML;
+    const btnAgregar = document.getElementById('btn-agregar-elemento');
+
+    function asignarBotonesQuitar() {
+        document.querySelectorAll('.btn-quitar-nueva').forEach(function(btn) {
+            btn.onclick = function() {
+                btn.closest('.formset-row').remove();
+            };
+        });
+        document.querySelectorAll('.btn-quitar-existente').forEach(function(btn) {
+            btn.onclick = function() {
+                const fila = btn.closest('.formset-row');
+                fila.querySelector('input[type=checkbox]').checked = true;
+                fila.style.display = 'none';
+            };
+        });
+    }
+
+    btnAgregar.addEventListener('click', function() {
+        const formNum = parseInt(totalFormsInput.value);
+        const nuevoHtml = template.replace(/__prefix__/g, formNum);
+        const div = document.createElement('div');
+        div.innerHTML = nuevoHtml;
+        container.appendChild(div.firstElementChild);
+        totalFormsInput.value = formNum + 1;
+        asignarBotonesQuitar();
+    });
+
+    asignarBotonesQuitar();
+})();
+</script>
+{% endblock %}

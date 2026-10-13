@@ -1,0 +1,26 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>Préstamos</h2>
+<a href="{% url 'prestamo_crear' %}" class="btn btn-success mb-3">+ Nuevo préstamo</a>
+<table class="table table-striped">
+    <thead><tr><th>Elemento</th><th>Cantidad</th><th>Prestado a</th><th>Fecha préstamo</th><th>Devolución</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody>
+        {% for p in prestamos %}
+        <tr>
+            <td>{{ p.elemento }}</td>
+            <td>{{ p.cantidad }}</td>
+            <td>{{ p.prestado_a }}</td>
+            <td>{{ p.fecha_prestamo }}</td>
+            <td>{{ p.fecha_devolucion|default:"-" }}</td>
+            <td>
+                {% if p.esta_pendiente %}<span class="badge bg-warning text-dark">Pendiente</span>
+                {% else %}<span class="badge bg-success">Devuelto</span>{% endif %}
+            </td>
+            <td><a href="{% url 'prestamo_editar' p.pk %}" class="btn btn-sm btn-outline-primary">Editar</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted">No hay préstamos cargados</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

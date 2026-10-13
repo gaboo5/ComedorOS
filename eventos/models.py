@@ -44,7 +44,7 @@ class Evento(models.Model):
         ('facturado', 'Facturado'),
         ('cobrado', 'Cobrado'),
     ]
-    
+
     ORIGEN = [
         ('interno', 'Interno'),
         ('externo', 'Externo'),
@@ -95,6 +95,13 @@ class Evento(models.Model):
     @property
     def margen(self):
         return self.precio_facturado - self.costo
+
+    @property
+    def costo_real_calculado(self):
+        """Suma compras + pagos vinculados a este evento — para comparar contra el campo 'costo' manual."""
+        total_compras = sum((c.total for c in self.compras.all()), 0)
+        total_pagos = sum((p.importe for p in self.pagos.all()), 0)
+        return total_compras + total_pagos
 
     def __str__(self):
         partes = [self.fecha.strftime('%d/%m/%Y')]
@@ -218,6 +225,10 @@ class Presupuesto(models.Model):
             return None
         return (self.subtotal_regular or 0) + (self.subtotal_vegetariano or 0) + (self.subtotal_celiaco or 0)
 
+    @property
+    def total_costo_personal(self):
+        return sum((item.subtotal for item in self.items_costo_personal.all()), 0)
+
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         # Mantiene sincronizados los totales del Evento con el desglose del presupuesto,
@@ -231,21 +242,6 @@ class Presupuesto(models.Model):
             cambios = True
         if cambios:
             self.evento.save(update_fields=['cantidad_personas', 'cantidad_personas_celiaco'])
-
-    def __str__(self):
-        return f"Presupuesto - {self.evento.nombre}"
-    
-    observaciones = models.TextField(blank=True)
-
-    @property
-    def total(self):
-        """Total estimado: precio por persona de la opción elegida × cantidad de personas, + recargo celíaco."""
-        if not self.opcion_elegida or not self.evento.cantidad_personas:
-            return None
-        personas_comunes = self.evento.cantidad_personas - self.cantidad_personas_celiaco
-        base = self.opcion_elegida.precio_regular * personas_comunes
-        recargo = (self.opcion_elegida.precio_celiaco or self.opcion_elegida.precio_regular) * self.cantidad_personas_celiaco
-        return base + recargo
 
     def __str__(self):
         return f"Presupuesto - {self.evento.nombre}"
@@ -267,6 +263,7 @@ class OpcionMenu(models.Model):
 
     def __str__(self):
         return f"{self.nombre} - {self.presupuesto.evento.nombre}"
+
 
 class InformeGestion(models.Model):
     """Datos manuales/narrativos del informe de gestión de un período. Los indicadores numéricos
@@ -306,6 +303,7 @@ class ResumenFacturacionMensual(models.Model):
     def __str__(self):
         return f"Facturación mes {self.mes} - {self.periodo}"
 
+
 class Integrante(models.Model):
     """Personas que forman parte del equipo del área de eventos."""
     nombre = models.CharField(max_length=150)
@@ -330,6 +328,7 @@ class FuncionActividad(models.Model):
 
     def __str__(self):
         return f"{self.numero}. {self.descripcion[:50]}"
+
 
 class Producto(models.Model):
     """Catálogo de productos comprados (materia prima, insumos, etc.)."""
@@ -386,3 +385,179 @@ class ItemCompra(models.Model):
 
     def __str__(self):
         return f"{self.producto} x {self.cantidad}"
+
+
+class PersonaEventual(models.Model):
+    """Personal eventual (mozos, cocineros, etc.) que cobra por evento — distinto de Integrante,
+    que es el equipo fijo del área."""
+    apellido = models.CharField(max_length=100)
+    nombre = models.CharField(max_length=100)
+    dni = models.CharField(max_length=15, unique=True)
+
+    class Meta:
+        ordering = ['apellido', 'nombre']
+        verbose_name_plural = 'Personas eventuales'
+
+    def __str__(self):
+        return f"{self.apellido}, {self.nombre} (DNI {self.dni})"
+
+
+class Pago(models.Model):
+    """Un pago individual: a una persona eventual (mozos, cocina, horas extra) o un gasto
+    operativo (combustible, general) sin persona asociada."""
+    TIPO_PAGO = [
+        ('mozos', 'Mozos'),
+        ('cocina_bacha_buffet', 'Cocina / Bacha / Buffet'),
+        ('horas_extra', 'Horas Extra'),
+        ('combustible', 'Combustible'),
+        ('general', 'General'),
+    ]
+
+    tipo_pago = models.CharField(max_length=25, choices=TIPO_PAGO)
+    numero_planilla = models.CharField(max_length=20, blank=True)
+    fecha = models.DateField()
+    persona = models.ForeignKey(
+        PersonaEventual, on_delete=models.PROTECT, null=True, blank=True, related_name='pagos'
+    )
+    evento = models.ForeignKey(Evento, on_delete=models.SET_NULL, null=True, blank=True, related_name='pagos')
+    descripcion_evento = models.CharField(
+        max_length=200, blank=True,
+        help_text="Texto libre si el evento no está cargado como tal en el sistema (ej. 'BUFFET 01/09/2026')."
+    )
+    importe = models.DecimalField(max_digits=12, decimal_places=2)
+    observaciones = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-fecha']
+
+    def __str__(self):
+        quien = str(self.persona) if self.persona else self.get_tipo_pago_display()
+        return f"{quien} - ${self.importe} ({self.fecha})"
+
+
+class ConceptoCostoPersonal(models.Model):
+    """Catálogo de conceptos de mano de obra: Mozos, Cocineros, Preelaboración, etc.
+    Es una lista abierta — se pueden agregar nuevos conceptos sin tocar código."""
+    nombre = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ['nombre']
+
+    def __str__(self):
+        return self.nombre
+
+
+class ItemCostoPersonal(models.Model):
+    """Un ítem de costo de personal dentro de un presupuesto: concepto + cantidad de personas
+    + precio por persona. El subtotal se calcula solo."""
+    presupuesto = models.ForeignKey(Presupuesto, on_delete=models.CASCADE, related_name='items_costo_personal')
+    concepto = models.ForeignKey(ConceptoCostoPersonal, on_delete=models.PROTECT)
+    cantidad_personas = models.IntegerField(default=1)
+    precio_por_persona = models.DecimalField(max_digits=10, decimal_places=2)
+
+    @property
+    def subtotal(self):
+        return self.cantidad_personas * self.precio_por_persona
+
+    def __str__(self):
+        return f"{self.concepto} x {self.cantidad_personas}"
+
+
+class CategoriaInventario(models.Model):
+    """Vajilla, Mantelería, Mobiliario, etc. — catálogo abierto."""
+    nombre = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        ordering = ['nombre']
+        verbose_name_plural = 'Categorías de inventario'
+
+    def __str__(self):
+        return self.nombre
+
+
+class ElementoInventario(models.Model):
+    """Un elemento del inventario (ej: 'Plato playo', 'Mantel blanco 2x2')."""
+    nombre = models.CharField(max_length=150)
+    categoria = models.ForeignKey(CategoriaInventario, on_delete=models.PROTECT, related_name='elementos')
+    cantidad_total = models.IntegerField(default=0, help_text="Cantidad total que posee el comedor.")
+
+    class Meta:
+        ordering = ['categoria__nombre', 'nombre']
+
+    @property
+    def cantidad_en_lavanderia(self):
+        return ItemEnvioLavanderia.objects.filter(
+            elemento=self, envio__fecha_retorno__isnull=True
+        ).aggregate(t=models.Sum('cantidad'))['t'] or 0
+
+    @property
+    def cantidad_prestada(self):
+        return ItemPrestamo.objects.filter(
+            elemento=self, prestamo__fecha_devolucion__isnull=True
+        ).aggregate(t=models.Sum('cantidad'))['t'] or 0
+
+    @property
+    def cantidad_disponible(self):
+        return self.cantidad_total - self.cantidad_en_lavanderia - self.cantidad_prestada
+
+    def __str__(self):
+        return f"{self.nombre} ({self.categoria})"
+
+
+class EnvioLavanderia(models.Model):
+    """Un envío a lavandería (puede incluir varios elementos). Mientras fecha_retorno esté vacía,
+    se considera 'afuera'."""
+    fecha_envio = models.DateField()
+    fecha_retorno = models.DateField(null=True, blank=True)
+    proveedor = models.CharField(max_length=200, blank=True)
+    factura = models.FileField(
+        upload_to='facturas_lavanderia/%Y/%m/', null=True, blank=True,
+        help_text="Se carga generalmente al momento de la devolución, cuando la lavandería la entrega."
+    )
+    observaciones = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-fecha_envio']
+
+    @property
+    def esta_pendiente(self):
+        return self.fecha_retorno is None
+
+    def __str__(self):
+        return f"Envío lavandería {self.fecha_envio}"
+
+
+class ItemEnvioLavanderia(models.Model):
+    envio = models.ForeignKey(EnvioLavanderia, on_delete=models.CASCADE, related_name='items')
+    elemento = models.ForeignKey(ElementoInventario, on_delete=models.PROTECT, related_name='items_lavanderia')
+    cantidad = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.elemento} x{self.cantidad}"
+
+
+class Prestamo(models.Model):
+    """Un préstamo (puede incluir varios elementos) a una persona u organismo."""
+    prestado_a = models.CharField(max_length=200)
+    fecha_prestamo = models.DateField()
+    fecha_devolucion = models.DateField(null=True, blank=True)
+    observaciones = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-fecha_prestamo']
+
+    @property
+    def esta_pendiente(self):
+        return self.fecha_devolucion is None
+
+    def __str__(self):
+        return f"Préstamo a {self.prestado_a} ({self.fecha_prestamo})"
+
+
+class ItemPrestamo(models.Model):
+    prestamo = models.ForeignKey(Prestamo, on_delete=models.CASCADE, related_name='items')
+    elemento = models.ForeignKey(ElementoInventario, on_delete=models.PROTECT, related_name='items_prestamo')
+    cantidad = models.IntegerField()
+
+    def __str__(self):
+        return f"{self.elemento} x{self.cantidad}"

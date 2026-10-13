@@ -1,0 +1,40 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>Pagos {% if tipo_actual %}— {{ pago_lista_titulo }}{% endif %}</h2>
+
+<div class="mb-3">
+    <a href="{% url 'pago_lista_todos' %}" class="btn btn-sm {% if not tipo_actual %}btn-dark{% else %}btn-outline-dark{% endif %}">Todos</a>
+    {% for valor, etiqueta in tipos_pago %}
+    <a href="{% url 'pago_lista_tipo' valor %}" class="btn btn-sm {% if tipo_actual == valor %}btn-dark{% else %}btn-outline-dark{% endif %}">{{ etiqueta }}</a>
+    {% endfor %}
+</div>
+
+<a href="{% url 'pago_crear' %}" class="btn btn-success mb-3">+ Nuevo pago</a>
+
+<table class="table table-striped">
+    <thead><tr><th>Fecha</th><th>Tipo</th><th>Planilla</th><th>Persona</th><th>Evento</th><th>Importe</th><th>Acciones</th></tr></thead>
+    <tbody>
+        {% for p in pagos %}
+        <tr>
+            <td>{{ p.fecha }}</td>
+            <td>{{ p.get_tipo_pago_display }}</td>
+            <td>{{ p.numero_planilla|default:"-" }}</td>
+            <td>{{ p.persona|default:"-" }}</td>
+            <td>{{ p.evento|default:p.descripcion_evento|default:"-" }}</td>
+            <td>${{ p.importe|floatformat:2 }}</td>
+            <td>
+                <a href="{% url 'pago_editar' p.pk %}" class="btn btn-sm btn-outline-primary">Editar</a>
+                <a href="{% url 'pago_eliminar' p.pk %}" class="btn btn-sm btn-outline-danger">Eliminar</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted">No hay pagos cargados</td></tr>
+        {% endfor %}
+        <tr class="table-secondary fw-bold">
+            <td colspan="5">Total</td>
+            <td>${{ total|floatformat:2 }}</td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+{% endblock %}

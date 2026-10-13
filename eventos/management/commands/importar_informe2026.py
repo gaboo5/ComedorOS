@@ -143,6 +143,8 @@ class Command(BaseCommand):
                 tipo_servicio_nombre = a_texto(fila.get(col_tipo_serv)) or 'Sin especificar'
                 personas = fila.get(col_personas)
                 personas = int(personas) if pd.notna(personas) else None
+                cantidad_personas_celiaco = fila.get(col_personas_celiaco)
+                cantidad_personas_celiaco = int(cantidad_personas_celiaco) if pd.notna(cantidad_personas_celiaco) else None
 
                 total_facturado = a_decimal(fila.get(col_total))
                 costo_total = a_decimal(fila.get(col_costo_total))

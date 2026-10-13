@@ -1,25 +1,41 @@
 from django import forms
-from .models import Evento
+from django.forms import inlineformset_factory
+
+from .models import Evento, Presupuesto, OpcionMenu
+from .models import InformeGestion
+from .models import Integrante, FuncionActividad
+from .models import Producto, Compra, ItemCompra
+from .models import PersonaEventual, Pago
+from .models import ConceptoCostoPersonal, ItemCostoPersonal
+from .models import CategoriaInventario, ElementoInventario, EnvioLavanderia, Prestamo
+from .models import ItemEnvioLavanderia, ItemPrestamo
 
 
 class EventoForm(forms.ModelForm):
     class Meta:
         model = Evento
-        fields = ['nombre', 'tipo', 'periodo', 'origen', 'fecha', 'costo', 'precio_facturado', 'estado_facturacion', 'cantidad_personas_celiaco']
+        fields = [
+            'nombre', 'tipo', 'tipo_servicio', 'periodo', 'origen', 'fecha',
+            'cliente', 'solicitante', 'cantidad_personas', 'cantidad_personas_celiaco',
+            'costo', 'precio_facturado', 'estado_facturacion', 'estado_evento', 'observaciones',
+        ]
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control'}),
             'tipo': forms.Select(attrs={'class': 'form-select'}),
+            'tipo_servicio': forms.Select(attrs={'class': 'form-select'}),
             'periodo': forms.Select(attrs={'class': 'form-select'}),
             'origen': forms.Select(attrs={'class': 'form-select'}),
             'fecha': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'cliente': forms.TextInput(attrs={'class': 'form-control'}),
+            'solicitante': forms.TextInput(attrs={'class': 'form-control'}),
+            'cantidad_personas': forms.NumberInput(attrs={'class': 'form-control'}),
+            'cantidad_personas_celiaco': forms.NumberInput(attrs={'class': 'form-control'}),
             'costo': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'precio_facturado': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'estado_facturacion': forms.Select(attrs={'class': 'form-select'}),
-            'cantidad_personas_celiaco': forms.NumberInput(attrs={'class': 'form-control'}),
+            'estado_evento': forms.Select(attrs={'class': 'form-select'}),
+            'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
-
-from django.forms import inlineformset_factory
-from .models import Presupuesto, OpcionMenu
 
 
 class EventoPresupuestoForm(forms.ModelForm):
@@ -67,8 +83,6 @@ OpcionMenuFormSet = inlineformset_factory(
     extra=3, can_delete=True
 )
 
-from .models import InformeGestion
-
 
 class InformeGestionForm(forms.ModelForm):
     class Meta:
@@ -85,8 +99,6 @@ class InformeGestionForm(forms.ModelForm):
             'logros_destacados': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'desafios_proximo_periodo': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
         }
-
-from .models import Integrante, FuncionActividad
 
 
 class IntegranteForm(forms.ModelForm):
@@ -109,8 +121,6 @@ class FuncionActividadForm(forms.ModelForm):
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'responsables': forms.CheckboxSelectMultiple(),
         }
-
-from .models import Producto, Compra, ItemCompra
 
 
 class ProductoForm(forms.ModelForm):
@@ -145,4 +155,101 @@ ItemCompraFormSet = inlineformset_factory(
         'total_pagado': forms.NumberInput(attrs={'class': 'form-control item-total', 'step': '0.01'}),
     },
     extra=3, can_delete=True
+)
+
+
+class PersonaEventualForm(forms.ModelForm):
+    class Meta:
+        model = PersonaEventual
+        fields = ['apellido', 'nombre', 'dni']
+        widgets = {
+            'apellido': forms.TextInput(attrs={'class': 'form-control'}),
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'dni': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+
+class PagoForm(forms.ModelForm):
+    class Meta:
+        model = Pago
+        fields = ['tipo_pago', 'numero_planilla', 'fecha', 'persona', 'evento', 'descripcion_evento', 'importe', 'observaciones']
+        widgets = {
+            'tipo_pago': forms.Select(attrs={'class': 'form-select'}),
+            'numero_planilla': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 083'}),
+            'fecha': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'persona': forms.Select(attrs={'class': 'form-select'}),
+            'evento': forms.Select(attrs={'class': 'form-select'}),
+            'descripcion_evento': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Si no está cargado como evento'}),
+            'importe': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+
+
+ItemCostoPersonalFormSet = inlineformset_factory(
+    Presupuesto, ItemCostoPersonal,
+    fields=['concepto', 'cantidad_personas', 'precio_por_persona'],
+    widgets={
+        'concepto': forms.Select(attrs={'class': 'form-select'}),
+        'cantidad_personas': forms.NumberInput(attrs={'class': 'form-control'}),
+        'precio_por_persona': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+    },
+    extra=3, can_delete=True
+)
+
+
+class ElementoInventarioForm(forms.ModelForm):
+    class Meta:
+        model = ElementoInventario
+        fields = ['nombre', 'categoria', 'cantidad_total']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'categoria': forms.Select(attrs={'class': 'form-select'}),
+            'cantidad_total': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+
+class EnvioLavanderiaForm(forms.ModelForm):
+    class Meta:
+        model = EnvioLavanderia
+        fields = ['fecha_envio', 'fecha_retorno', 'proveedor', 'factura', 'observaciones']
+        widgets = {
+            'fecha_envio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'fecha_retorno': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'proveedor': forms.TextInput(attrs={'class': 'form-control'}),
+            'factura': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+
+
+class PrestamoForm(forms.ModelForm):
+    class Meta:
+        model = Prestamo
+        fields = ['prestado_a', 'fecha_prestamo', 'fecha_devolucion', 'observaciones']
+        widgets = {
+            'prestado_a': forms.TextInput(attrs={'class': 'form-control'}),
+            'fecha_prestamo': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'fecha_devolucion': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+
+
+ItemEnvioLavanderiaFormSet = inlineformset_factory(
+    EnvioLavanderia, ItemEnvioLavanderia,
+    fields=['elemento', 'cantidad'],
+    widgets={
+        'elemento': forms.Select(attrs={'class': 'form-select'}),
+        'cantidad': forms.NumberInput(attrs={'class': 'form-control'}),
+    },
+    extra=1, can_delete=True
+)
+
+
+ItemPrestamoFormSet = inlineformset_factory(
+    Prestamo, ItemPrestamo,
+    fields=['elemento', 'cantidad'],
+    widgets={
+        'elemento': forms.Select(attrs={'class': 'form-select'}),
+        'cantidad': forms.NumberInput(attrs={'class': 'form-control'}),
+    },
+    extra=1, can_delete=True
 )

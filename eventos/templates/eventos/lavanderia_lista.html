@@ -1,0 +1,25 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>Lavandería</h2>
+<a href="{% url 'lavanderia_crear' %}" class="btn btn-success mb-3">+ Nuevo envío</a>
+<table class="table table-striped">
+    <thead><tr><th>Elemento</th><th>Cantidad</th><th>Enviado</th><th>Retorno</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody>
+        {% for env in envios %}
+        <tr>
+            <td>{{ env.elemento }}</td>
+            <td>{{ env.cantidad }}</td>
+            <td>{{ env.fecha_envio }}</td>
+            <td>{{ env.fecha_retorno|default:"-" }}</td>
+            <td>
+                {% if env.esta_pendiente %}<span class="badge bg-warning text-dark">Pendiente</span>
+                {% else %}<span class="badge bg-success">Devuelto</span>{% endif %}
+            </td>
+            <td><a href="{% url 'lavanderia_editar' env.pk %}" class="btn btn-sm btn-outline-primary">Editar</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted">No hay envíos cargados</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

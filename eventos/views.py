@@ -2,7 +2,8 @@ from django.shortcuts import render
 from django.db.models import Sum
 from .models import Evento, Periodo
 import pandas as pd
-
+from .models import ItemEnvioLavanderia, ItemPrestamo
+from .forms import ItemEnvioLavanderiaFormSet, ItemPrestamoFormSet
 
 from itertools import groupby
 
@@ -82,7 +83,7 @@ def dashboard(request):
     return render(request, 'eventos/dashboard.html', context)
 
 from django.shortcuts import redirect, get_object_or_404
-from .forms import EventoForm
+from .forms import EventoForm, ItemCostoPersonalFormSet
 
 
 def evento_crear(request):
@@ -119,7 +120,7 @@ def evento_eliminar(request, pk):
 
 from django.db import transaction
 from .models import Presupuesto, Periodo, OpcionMenu, DetalleCosto, TipoServicio
-from .forms import EventoPresupuestoForm, PresupuestoForm, OpcionMenuFormSet
+from .forms import EventoPresupuestoForm, PresupuestoForm, OpcionMenuFormSet, ItemCostoPersonalFormSet
 
 
 def presupuesto_form(request, pk=None):
@@ -135,8 +136,9 @@ def presupuesto_form(request, pk=None):
         evento_form = EventoPresupuestoForm(request.POST, instance=evento)
         presupuesto_form_obj = PresupuestoForm(request.POST, instance=presupuesto)
         formset = OpcionMenuFormSet(request.POST, instance=presupuesto)
+        formset_costo_personal = ItemCostoPersonalFormSet(request.POST, instance=presupuesto, prefix='costopersonal')
 
-        if evento_form.is_valid() and presupuesto_form_obj.is_valid() and formset.is_valid():
+        if evento_form.is_valid() and presupuesto_form_obj.is_valid() and formset.is_valid() and formset_costo_personal.is_valid():
             with transaction.atomic():
                 evento = evento_form.save(commit=False)
                 semestre = 1 if evento.fecha.month <= 6 else 2
@@ -158,16 +160,21 @@ def presupuesto_form(request, pk=None):
                 formset.instance = presupuesto_obj
                 formset.save()
 
+                formset_costo_personal.instance = presupuesto_obj
+                formset_costo_personal.save()
+
             return redirect('presupuesto_detalle', pk=presupuesto_obj.pk)
     else:
         evento_form = EventoPresupuestoForm(instance=evento)
         presupuesto_form_obj = PresupuestoForm(instance=presupuesto)
         formset = OpcionMenuFormSet(instance=presupuesto)
+        formset_costo_personal = ItemCostoPersonalFormSet(instance=presupuesto, prefix='costopersonal')
 
     return render(request, 'eventos/presupuesto_form.html', {
         'evento_form': evento_form,
         'presupuesto_form': presupuesto_form_obj,
         'formset': formset,
+        'formset_costo_personal': formset_costo_personal,
         'editando': pk is not None,
     })
 
@@ -1035,4 +1042,127 @@ def producto_detalle(request, pk):
     return render(request, 'eventos/producto_detalle.html', {
         'producto': producto,
         'historial': historial,
+    })
+
+
+from .models import PersonaEventual, Pago
+from .forms import PersonaEventualForm, PagoForm
+
+
+def persona_eventual_lista(request):
+    personas = PersonaEventual.objects.all()
+    return render(request, 'eventos/persona_eventual_lista.html', {'personas': personas})
+
+
+def persona_eventual_form(request, pk=None):
+    persona = get_object_or_404(PersonaEventual, pk=pk) if pk else PersonaEventual()
+    if request.method == 'POST':
+        form = PersonaEventualForm(request.POST, instance=persona)
+        if form.is_valid():
+            form.save()
+            return redirect('persona_eventual_lista')
+    else:
+        form = PersonaEventualForm(instance=persona)
+    return render(request, 'eventos/persona_eventual_form.html', {'form': form, 'editando': pk is not None})
+
+
+def pago_lista(request, tipo=None):
+    pagos = Pago.objects.select_related('persona', 'evento')
+    if tipo:
+        pagos = pagos.filter(tipo_pago=tipo)
+    pagos = pagos.order_by('-fecha')
+    total = sum((p.importe for p in pagos), 0)
+    return render(request, 'eventos/pago_lista.html', {
+        'pagos': pagos, 'tipo_actual': tipo, 'total': total, 'tipos_pago': Pago.TIPO_PAGO,
+    })
+
+
+def pago_form(request, pk=None):
+    pago = get_object_or_404(Pago, pk=pk) if pk else Pago()
+    if request.method == 'POST':
+        form = PagoForm(request.POST, instance=pago)
+        if form.is_valid():
+            form.save()
+            return redirect('pago_lista_todos')
+    else:
+        form = PagoForm(instance=pago)
+    return render(request, 'eventos/pago_form.html', {'form': form, 'editando': pk is not None})
+
+
+def pago_eliminar(request, pk):
+    pago = get_object_or_404(Pago, pk=pk)
+    if request.method == 'POST':
+        pago.delete()
+        return redirect('pago_lista_todos')
+    return render(request, 'eventos/pago_confirmar_eliminar.html', {'pago': pago})
+
+from .models import CategoriaInventario, ElementoInventario, EnvioLavanderia, Prestamo
+from .forms import ElementoInventarioForm, EnvioLavanderiaForm, PrestamoForm
+
+
+def inventario_lista(request):
+    categoria_id = request.GET.get('categoria')
+    elementos = ElementoInventario.objects.select_related('categoria')
+    if categoria_id:
+        elementos = elementos.filter(categoria_id=categoria_id)
+    categorias = CategoriaInventario.objects.all()
+    return render(request, 'eventos/inventario_lista.html', {
+        'elementos': elementos, 'categorias': categorias, 'categoria_seleccionada': categoria_id,
+    })
+
+
+def inventario_form(request, pk=None):
+    elemento = get_object_or_404(ElementoInventario, pk=pk) if pk else ElementoInventario()
+    if request.method == 'POST':
+        form = ElementoInventarioForm(request.POST, instance=elemento)
+        if form.is_valid():
+            form.save()
+            return redirect('inventario_lista')
+    else:
+        form = ElementoInventarioForm(instance=elemento)
+    return render(request, 'eventos/inventario_form.html', {'form': form, 'editando': pk is not None})
+
+
+def lavanderia_lista(request):
+    envios = EnvioLavanderia.objects.prefetch_related('items__elemento').all()
+    return render(request, 'eventos/lavanderia_lista.html', {'envios': envios})
+
+def lavanderia_form(request, pk=None):
+    envio = get_object_or_404(EnvioLavanderia, pk=pk) if pk else EnvioLavanderia()
+    if request.method == 'POST':
+        form = EnvioLavanderiaForm(request.POST, request.FILES, instance=envio)
+        formset = ItemEnvioLavanderiaFormSet(request.POST, instance=envio)
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                envio_obj = form.save()
+                formset.instance = envio_obj
+                formset.save()
+            return redirect('lavanderia_lista')
+    else:
+        form = EnvioLavanderiaForm(instance=envio)
+        formset = ItemEnvioLavanderiaFormSet(instance=envio)
+    return render(request, 'eventos/lavanderia_form.html', {
+        'form': form, 'formset': formset, 'editando': pk is not None,
+    })
+
+def prestamo_lista(request):
+    prestamos = Prestamo.objects.prefetch_related('items__elemento').all()
+    return render(request, 'eventos/prestamo_lista.html', {'prestamos': prestamos})
+
+def prestamo_form(request, pk=None):
+    prestamo = get_object_or_404(Prestamo, pk=pk) if pk else Prestamo()
+    if request.method == 'POST':
+        form = PrestamoForm(request.POST, instance=prestamo)
+        formset = ItemPrestamoFormSet(request.POST, instance=prestamo)
+        if form.is_valid() and formset.is_valid():
+            with transaction.atomic():
+                prestamo_obj = form.save()
+                formset.instance = prestamo_obj
+                formset.save()
+            return redirect('prestamo_lista')
+    else:
+        form = PrestamoForm(instance=prestamo)
+        formset = ItemPrestamoFormSet(instance=prestamo)
+    return render(request, 'eventos/prestamo_form.html', {
+        'form': form, 'formset': formset, 'editando': pk is not None,
     })
