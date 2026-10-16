@@ -6,6 +6,7 @@
 <a href="{% url 'producto_lista' %}" class="btn btn-secondary mb-3">Volver</a>
 
 <h5>Historial de precios</h5>
+<div class="table-responsive">
 <table class="table table-striped">
     <thead>
         <tr><th>Fecha</th><th>Proveedor</th><th>Cantidad</th><th>Total pagado</th><th>Precio unitario</th><th>Variación</th></tr>
@@ -16,8 +17,8 @@
             <td>{{ h.fecha }}</td>
             <td>{{ h.proveedor|default:"-" }}</td>
             <td>{{ h.cantidad }}</td>
-            <td>${{ h.total_pagado|floatformat:2 }}</td>
-            <td>${{ h.precio_unitario|floatformat:2 }}</td>
+            <td>{{ h.total_pagado|moneda }}</td>
+            <td>{{ h.precio_unitario|moneda }}</td>
             <td>
                 {% if h.variacion is not None %}
                     {% if h.variacion > 15 %}
@@ -39,4 +40,5 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
 {% endblock %}

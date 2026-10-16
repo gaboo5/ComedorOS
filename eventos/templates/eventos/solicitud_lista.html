@@ -3,6 +3,7 @@
 <h2>Solicitudes pendientes</h2>
 <a href="{% url 'solicitud_crear' %}" class="btn btn-primary mb-3">+ Nueva solicitud</a>
 
+<div class="table-responsive">
 <table class="table table-striped">
     <thead>
         <tr><th>Fecha</th><th>Servicio</th><th>Cliente</th><th>Solicitante</th><th>Personas</th><th>Notas</th><th>Acciones</th></tr>
@@ -25,4 +26,5 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
 {% endblock %}

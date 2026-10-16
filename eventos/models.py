@@ -229,6 +229,13 @@ class Presupuesto(models.Model):
     def total_costo_personal(self):
         return sum((item.subtotal for item in self.items_costo_personal.all()), 0)
 
+    @property
+    def margen_estimado(self):
+        """Venta estimada menos costo de personal (solo si ya hay opción elegida)."""
+        if self.total is None:
+            return None
+        return self.total - self.total_costo_personal
+
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         # Mantiene sincronizados los totales del Evento con el desglose del presupuesto,

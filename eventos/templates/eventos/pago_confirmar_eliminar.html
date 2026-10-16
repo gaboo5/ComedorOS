@@ -1,7 +1,7 @@
 {% extends 'eventos/base.html' %}
 {% block content %}
 <h2>¿Eliminar pago?</h2>
-<p>Estás por eliminar el pago a <strong>{{ pago.persona|default:pago.get_tipo_pago_display }}</strong> por ${{ pago.importe }}.</p>
+<p>Estás por eliminar el pago a <strong>{{ pago.persona|default:pago.get_tipo_pago_display }}</strong> por {{ pago.importe|moneda }}.</p>
 <form method="post">
     {% csrf_token %}
     <button type="submit" class="btn btn-danger">Sí, eliminar</button>

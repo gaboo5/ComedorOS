@@ -2,6 +2,7 @@
 {% block content %}
 <h2>Compras</h2>
 <a href="{% url 'compra_crear' %}" class="btn btn-success mb-3">+ Nueva compra</a>
+<div class="table-responsive">
 <table class="table table-striped">
     <thead><tr><th>Fecha</th><th>Proveedor</th><th>Evento</th><th>Total</th><th>Acciones</th></tr></thead>
     <tbody>
@@ -10,7 +11,7 @@
             <td>{{ c.fecha }}</td>
             <td>{{ c.proveedor|default:"-" }}</td>
             <td>{{ c.evento|default:"-" }}</td>
-            <td>${{ c.total|floatformat:2 }}</td>
+            <td>{{ c.total|moneda }}</td>
             <td>
                 <a href="{% url 'compra_detalle' c.pk %}" class="btn btn-sm btn-outline-secondary">Ver</a>
                 <a href="{% url 'compra_editar' c.pk %}" class="btn btn-sm btn-outline-primary">Editar</a>
@@ -22,4 +23,5 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
 {% endblock %}

@@ -17,9 +17,9 @@
                         {% endif %}
                     </h5>
                     <p style="white-space: pre-line" class="flex-grow-1">{{ opcion.detalle_menu }}</p>
-                    <p class="mb-1"><strong>${{ opcion.precio_regular }}</strong> por persona (regular)</p>
-                    {% if opcion.precio_vegetariano %}<p class="mb-1 small">Vegetariano: ${{ opcion.precio_vegetariano }}</p>{% endif %}
-                    {% if opcion.precio_celiaco %}<p class="mb-1 small">Celíaco: ${{ opcion.precio_celiaco }}</p>{% endif %}
+                    <p class="mb-1"><strong>{{ opcion.precio_regular|moneda }}</strong> por persona (regular)</p>
+                    {% if opcion.precio_vegetariano %}<p class="mb-1 small">Vegetariano: {{ opcion.precio_vegetariano|moneda }}</p>{% endif %}
+                    {% if opcion.precio_celiaco %}<p class="mb-1 small">Celíaco: {{ opcion.precio_celiaco|moneda }}</p>{% endif %}
                     <button type="submit" name="opcion_id" value="{{ opcion.id }}" class="btn btn-primary mt-auto">
                         Elegir esta opción
                     </button>

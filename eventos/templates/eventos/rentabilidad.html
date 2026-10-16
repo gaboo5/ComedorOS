@@ -15,9 +15,9 @@
     <div class="card-body">
         <h5>Total del período</h5>
         <p class="mb-0">
-            Facturado: <strong>${{ total_general_facturado|floatformat:2 }}</strong> —
-            Costo: <strong>${{ total_general_costo|floatformat:2 }}</strong> —
-            Ganancia: <strong>${{ total_general_margen|floatformat:2 }}</strong>
+            Facturado: <strong>{{ total_general_facturado|moneda }}</strong> —
+            Costo: <strong>{{ total_general_costo|moneda }}</strong> —
+            Ganancia: <strong>{{ total_general_margen|moneda }}</strong>
         </p>
     </div>
 </div>
@@ -39,25 +39,25 @@
             <td>{{ fila.evento.fecha|date:"d/m" }}</td>
             <td>{{ fila.evento.cliente|default:"-" }}</td>
             <td>{{ fila.evento.tipo_servicio|default:"-" }}</td>
-            <td>{% if fila.valor_por_persona %}${{ fila.valor_por_persona|floatformat:2 }}{% else %}-{% endif %}</td>
-            <td>${{ fila.evento.precio_facturado|floatformat:2 }}</td>
-            <td>{% if fila.manteleria is not None %}${{ fila.manteleria|floatformat:2 }}{% else %}-{% endif %}</td>
-            <td>{% if fila.materia_prima is not None %}${{ fila.materia_prima|floatformat:2 }}{% else %}-{% endif %}</td>
-            <td>{% if fila.personal is not None %}${{ fila.personal|floatformat:2 }}{% else %}-{% endif %}</td>
-            <td>{% if fila.planilla is not None %}${{ fila.planilla|floatformat:2 }}{% else %}-{% endif %}</td>
-            <td>{% if fila.varios is not None %}${{ fila.varios|floatformat:2 }}{% else %}-{% endif %}</td>
-            <td>${{ fila.evento.costo|floatformat:2 }}</td>
+            <td>{{ fila.valor_por_persona|moneda }}</td>
+            <td>{{ fila.evento.precio_facturado|moneda }}</td>
+            <td>{{ fila.manteleria|moneda }}</td>
+            <td>{{ fila.materia_prima|moneda }}</td>
+            <td>{{ fila.personal|moneda }}</td>
+            <td>{{ fila.planilla|moneda }}</td>
+            <td>{{ fila.varios|moneda }}</td>
+            <td>{{ fila.evento.costo|moneda }}</td>
             <td class="{% if fila.evento.margen < 0 %}text-danger{% else %}text-success{% endif %}">
-                ${{ fila.evento.margen|floatformat:2 }}
+                {{ fila.evento.margen|moneda }}
             </td>
         </tr>
         {% endfor %}
         <tr class="table-secondary fw-bold">
             <td colspan="4">Subtotal {{ grupo.etiqueta }}</td>
-            <td>${{ grupo.total_facturado|floatformat:2 }}</td>
+            <td>{{ grupo.total_facturado|moneda }}</td>
             <td colspan="5"></td>
-            <td>${{ grupo.total_costo|floatformat:2 }}</td>
-            <td>${{ grupo.total_margen|floatformat:2 }}</td>
+            <td>{{ grupo.total_costo|moneda }}</td>
+            <td>{{ grupo.total_margen|moneda }}</td>
         </tr>
     </tbody>
 </table>

@@ -8,9 +8,9 @@
 <ul>
     <li>Eventos: {{ indicadores.total_eventos }} ({{ indicadores.internos }} internos, {{ indicadores.externos }} externos)</li>
     <li>Personas atendidas: {{ indicadores.total_personas }}</li>
-    <li>Costo total: ${{ indicadores.costo_total }}</li>
-    <li>Facturado: ${{ indicadores.facturado_total }} ({{ indicadores.cobrados }} cobrados, {{ indicadores.pendientes }} pendientes)</li>
-    <li>Margen: ${{ indicadores.margen_total }}</li>
+    <li>Costo total: {{ indicadores.costo_total|moneda }}</li>
+    <li>Facturado: {{ indicadores.facturado_total|moneda }} ({{ indicadores.cobrados }} cobrados, {{ indicadores.pendientes }} pendientes)</li>
+    <li>Margen: {{ indicadores.margen_total|moneda }}</li>
     <li>Unidades de destino distintas: {{ indicadores.unidades_destino }}</li>
 </ul>
 

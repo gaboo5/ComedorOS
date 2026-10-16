@@ -2,6 +2,7 @@
 {% block content %}
 <h2>Funciones y Responsables</h2>
 <a href="{% url 'funcion_crear' %}" class="btn btn-success mb-3">+ Nueva función</a>
+<div class="table-responsive">
 <table class="table table-striped">
     <thead><tr><th>Nº</th><th>Descripción</th><th>Responsable(s)</th><th>Acciones</th></tr></thead>
     <tbody>
@@ -20,4 +21,5 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
 {% endblock %}

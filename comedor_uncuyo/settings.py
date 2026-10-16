@@ -63,6 +63,8 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
+            # Filtros propios (|moneda, {% nav_activo %}) disponibles en todos los templates.
+            'builtins': ['eventos.templatetags.formatos'],
         },
     },
 ]
@@ -108,6 +110,9 @@ LANGUAGE_CODE = 'es-ar'
 TIME_ZONE = 'America/Argentina/Mendoza'
 
 USE_I18N = True
+
+# Traducciones propias: Django 6.1 trae algunos textos nuevos sin traducir al español.
+LOCALE_PATHS = [BASE_DIR / 'locale']
 
 USE_TZ = True
 

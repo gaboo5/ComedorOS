@@ -3,6 +3,7 @@
 <h2>Presupuestos</h2>
 <a href="{% url 'presupuesto_crear' %}" class="btn btn-primary mb-3">+ Nuevo presupuesto</a>
 
+<div class="table-responsive">
 <table class="table table-striped">
     <thead>
         <tr>
@@ -28,4 +29,5 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
 {% endblock %}

@@ -1,34 +1,36 @@
 {% load static %}
-<div class="sidebar-logo text-center mb-3">
-    <img src="{% static 'eventos/img/logo.png' %}" alt="Eventos UNCuyo">
-</div>
+<a href="{% url 'inicio' %}" class="sidebar-logo d-block text-center mb-2">
+    <img src="{% static 'eventos/img/logo.png' %}" alt="Eventos UNCuyo — ir al inicio">
+</a>
 
 <nav class="nav flex-column">
-    <a class="nav-link" href="{% url 'inicio' %}"><i class="bi bi-house-door me-2"></i>Inicio</a>
+    <a class="nav-link {% nav_activo 'inicio' %}" href="{% url 'inicio' %}"><i class="bi bi-house-door me-2"></i>Inicio</a>
 
     <div class="sidebar-heading">Eventos</div>
-    <a class="nav-link" href="{% url 'agenda' %}"><i class="bi bi-calendar3 me-2"></i>Agenda</a>
-    <a class="nav-link" href="{% url 'solicitud_lista' %}"><i class="bi bi-inbox me-2"></i>Solicitudes</a>
-    <a class="nav-link" href="{% url 'presupuesto_lista' %}"><i class="bi bi-file-earmark-text me-2"></i>Presupuestos</a>
+    <a class="nav-link {% nav_activo 'agenda' 'evento_' %}" href="{% url 'agenda' %}"><i class="bi bi-calendar3 me-2"></i>Agenda</a>
+    <a class="nav-link {% nav_activo 'solicitud_' %}" href="{% url 'solicitud_lista' %}"><i class="bi bi-inbox me-2"></i>Solicitudes</a>
+    <a class="nav-link {% nav_activo 'presupuesto_' %}" href="{% url 'presupuesto_lista' %}"><i class="bi bi-file-earmark-text me-2"></i>Presupuestos</a>
 
     <div class="sidebar-heading">Finanzas</div>
-    <a class="nav-link" href="{% url 'dashboard' %}"><i class="bi bi-speedometer2 me-2"></i>Indicadores</a>
-    <a class="nav-link" href="{% url 'rentabilidad' %}"><i class="bi bi-graph-up me-2"></i>Ganancias</a>
-    <a class="nav-link" href="{% url 'facturacion_mensual' %}"><i class="bi bi-receipt me-2"></i>Facturación</a>
-
-    <div class="sidebar-heading">Herramientas</div>
-    <a class="nav-link" href="{% url 'sincronizar_excel' %}"><i class="bi bi-arrow-repeat me-2"></i>Sincronizar Excel</a>
-
-    <div class="sidebar-heading">Equipo</div>
-    <a class="nav-link" href="{% url 'integrante_lista' %}"><i class="bi bi-people me-2"></i>Integrantes</a>
-    <a class="nav-link" href="{% url 'funcion_lista' %}"><i class="bi bi-list-check me-2"></i>Funciones</a>
+    <a class="nav-link {% nav_activo 'dashboard' 'informe_' %}" href="{% url 'dashboard' %}"><i class="bi bi-speedometer2 me-2"></i>Indicadores</a>
+    <a class="nav-link {% nav_activo 'rentabilidad' %}" href="{% url 'rentabilidad' %}"><i class="bi bi-graph-up me-2"></i>Ganancias</a>
+    <a class="nav-link {% nav_activo 'facturacion_' %}" href="{% url 'facturacion_mensual' %}"><i class="bi bi-receipt me-2"></i>Facturación</a>
+    <a class="nav-link {% nav_activo 'pago_' %}" href="{% url 'pago_lista_todos' %}"><i class="bi bi-cash-coin me-2"></i>Pagos</a>
 
     <div class="sidebar-heading">Compras</div>
-    <a class="nav-link" href="{% url 'compra_lista' %}"><i class="bi bi-cart me-2"></i>Compras</a>
-    <a class="nav-link" href="{% url 'producto_lista' %}"><i class="bi bi-box-seam me-2"></i>Productos</a>
+    <a class="nav-link {% nav_activo 'compra_' %}" href="{% url 'compra_lista' %}"><i class="bi bi-cart me-2"></i>Compras</a>
+    <a class="nav-link {% nav_activo 'producto_' %}" href="{% url 'producto_lista' %}"><i class="bi bi-box-seam me-2"></i>Productos</a>
 
     <div class="sidebar-heading">Inventario</div>
-    <a class="nav-link" href="{% url 'inventario_lista' %}"><i class="bi bi-box2 me-2"></i>Inventario</a>
-    <a class="nav-link" href="{% url 'lavanderia_lista' %}"><i class="bi bi-droplet me-2"></i>Lavandería</a>
-    <a class="nav-link" href="{% url 'prestamo_lista' %}"><i class="bi bi-arrow-left-right me-2"></i>Préstamos</a>
+    <a class="nav-link {% nav_activo 'inventario_' %}" href="{% url 'inventario_lista' %}"><i class="bi bi-box2 me-2"></i>Inventario</a>
+    <a class="nav-link {% nav_activo 'lavanderia_' %}" href="{% url 'lavanderia_lista' %}"><i class="bi bi-droplet me-2"></i>Lavandería</a>
+    <a class="nav-link {% nav_activo 'prestamo_' %}" href="{% url 'prestamo_lista' %}"><i class="bi bi-arrow-left-right me-2"></i>Préstamos</a>
+
+    <div class="sidebar-heading">Equipo</div>
+    <a class="nav-link {% nav_activo 'integrante_' %}" href="{% url 'integrante_lista' %}"><i class="bi bi-people me-2"></i>Integrantes</a>
+    <a class="nav-link {% nav_activo 'funcion_' %}" href="{% url 'funcion_lista' %}"><i class="bi bi-list-check me-2"></i>Funciones</a>
+    <a class="nav-link {% nav_activo 'persona_eventual_' %}" href="{% url 'persona_eventual_lista' %}"><i class="bi bi-person-badge me-2"></i>Personal eventual</a>
+
+    <div class="sidebar-heading">Herramientas</div>
+    <a class="nav-link {% nav_activo 'sincronizar_' %}" href="{% url 'sincronizar_excel' %}"><i class="bi bi-arrow-repeat me-2"></i>Sincronizar Excel</a>
 </nav>

@@ -10,7 +10,14 @@
         {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
     </div>
     {% endfor %}
-    <button type="submit" class="btn btn-primary">Guardar</button>
-    <a href="{% url 'agenda' %}" class="btn btn-secondary">Cancelar</a>
+    <div class="d-flex flex-wrap gap-2">
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a href="{% url 'agenda' %}" class="btn btn-secondary">Cancelar</a>
+        {% if form.instance.pk %}
+        <a href="{% url 'evento_eliminar' form.instance.pk %}" class="btn btn-outline-danger ms-auto">
+            <i class="bi bi-trash me-1"></i>Eliminar evento
+        </a>
+        {% endif %}
+    </div>
 </form>
 {% endblock %}

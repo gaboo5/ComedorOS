@@ -11,6 +11,7 @@
 
 <a href="{% url 'pago_crear' %}" class="btn btn-success mb-3">+ Nuevo pago</a>
 
+<div class="table-responsive">
 <table class="table table-striped">
     <thead><tr><th>Fecha</th><th>Tipo</th><th>Planilla</th><th>Persona</th><th>Evento</th><th>Importe</th><th>Acciones</th></tr></thead>
     <tbody>
@@ -21,7 +22,7 @@
             <td>{{ p.numero_planilla|default:"-" }}</td>
             <td>{{ p.persona|default:"-" }}</td>
             <td>{{ p.evento|default:p.descripcion_evento|default:"-" }}</td>
-            <td>${{ p.importe|floatformat:2 }}</td>
+            <td>{{ p.importe|moneda }}</td>
             <td>
                 <a href="{% url 'pago_editar' p.pk %}" class="btn btn-sm btn-outline-primary">Editar</a>
                 <a href="{% url 'pago_eliminar' p.pk %}" class="btn btn-sm btn-outline-danger">Eliminar</a>
@@ -32,9 +33,10 @@
         {% endfor %}
         <tr class="table-secondary fw-bold">
             <td colspan="5">Total</td>
-            <td>${{ total|floatformat:2 }}</td>
+            <td>{{ total|moneda }}</td>
             <td></td>
         </tr>
     </tbody>
 </table>
+</div>
 {% endblock %}

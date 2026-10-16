@@ -13,6 +13,7 @@
 </form>
 
 {% if resumen %}
+<div class="table-responsive">
 <table class="table table-striped">
     <thead>
         <tr><th>Mes</th><th>Facturado</th><th>Cobrado</th><th>Pendiente</th><th>% Cobrado</th></tr>
@@ -21,9 +22,9 @@
         {% for fila in resumen.filas %}
         <tr>
             <td>{{ fila.mes }}</td>
-            <td>${{ fila.facturado|floatformat:2 }}</td>
-            <td>${{ fila.cobrado|floatformat:2 }}</td>
-            <td>${{ fila.pendiente|floatformat:2 }}</td>
+            <td>{{ fila.facturado|moneda }}</td>
+            <td>{{ fila.cobrado|moneda }}</td>
+            <td>{{ fila.pendiente|moneda }}</td>
             <td>{{ fila.porcentaje_cobrado|floatformat:1 }}%</td>
         </tr>
         {% empty %}
@@ -31,12 +32,13 @@
         {% endfor %}
         <tr class="table-secondary fw-bold">
             <td>Total</td>
-            <td>${{ resumen.total_facturado|floatformat:2 }}</td>
-            <td>${{ resumen.total_cobrado|floatformat:2 }}</td>
-            <td>${{ resumen.total_pendiente|floatformat:2 }}</td>
+            <td>{{ resumen.total_facturado|moneda }}</td>
+            <td>{{ resumen.total_cobrado|moneda }}</td>
+            <td>{{ resumen.total_pendiente|moneda }}</td>
             <td>{{ resumen.porcentaje_general|floatformat:1 }}%</td>
         </tr>
     </tbody>
 </table>
+</div>
 {% endif %}
 {% endblock %}

@@ -7,6 +7,7 @@
 <p><strong>Proveedor:</strong> {{ compra.proveedor|default:"-" }}</p>
 <p><strong>Evento asociado:</strong> {{ compra.evento|default:"Compra general (no atada a un evento)" }}</p>
 
+<div class="table-responsive">
 <table class="table table-striped">
     <thead><tr><th>Producto</th><th>Cantidad</th><th>Total pagado</th><th>Precio unitario</th></tr></thead>
     <tbody>
@@ -14,17 +15,18 @@
         <tr>
             <td>{{ item.producto }}</td>
             <td>{{ item.cantidad }} {{ item.producto.get_unidad_medida_display }}</td>
-            <td>${{ item.total_pagado|floatformat:2 }}</td>
-            <td>${{ item.precio_unitario|floatformat:2 }}</td>
+            <td>{{ item.total_pagado|moneda }}</td>
+            <td>{{ item.precio_unitario|moneda }}</td>
         </tr>
         {% endfor %}
         <tr class="table-secondary fw-bold">
             <td colspan="2">Total de la compra</td>
-            <td>${{ compra.total|floatformat:2 }}</td>
+            <td>{{ compra.total|moneda }}</td>
             <td></td>
         </tr>
     </tbody>
 </table>
+</div>
 
 {% if compra.observaciones %}<p><strong>Observaciones:</strong> {{ compra.observaciones }}</p>{% endif %}
 {% endblock %}

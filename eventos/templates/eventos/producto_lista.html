@@ -2,6 +2,7 @@
 {% block content %}
 <h2>Productos</h2>
 <a href="{% url 'producto_crear' %}" class="btn btn-success mb-3">+ Nuevo producto</a>
+<div class="table-responsive">
 <table class="table table-striped">
     <thead><tr><th>Nombre</th><th>Unidad</th><th>Último precio unitario</th><th>Acciones</th></tr></thead>
     <tbody>
@@ -9,7 +10,7 @@
         <tr>
             <td><a href="{% url 'producto_detalle' p.pk %}">{{ p.nombre }}</a></td>
             <td>{{ p.get_unidad_medida_display }}</td>
-            <td>{% if p.ultimo_precio_unitario %}${{ p.ultimo_precio_unitario }}{% else %}Sin compras cargadas{% endif %}</td>
+            <td>{% if p.ultimo_precio_unitario %}{{ p.ultimo_precio_unitario|moneda }}{% else %}Sin compras cargadas{% endif %}</td>
             <td><a href="{% url 'producto_editar' p.pk %}" class="btn btn-sm btn-outline-primary">Editar</a></td>
         </tr>
         {% empty %}
@@ -17,4 +18,5 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
 {% endblock %}

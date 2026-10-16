@@ -1,0 +1,10 @@
+# Traducciones propias de ComedorOS.
+# Django 6.1 incorpora textos nuevos que todavía no tienen traducción oficial al español;
+# acá se completan. Después de editar este archivo hay que regenerar django.mo.
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: es_AR\n"
+
+msgid "- Select an option -"
+msgstr "- Elegí una opción -"

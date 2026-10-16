@@ -47,7 +47,7 @@ document.querySelectorAll('#form-compra .border.rounded').forEach(function(fila)
         const cantidad = parseFloat(cantidadInput.value);
         const total = parseFloat(totalInput.value);
         if (cantidad > 0 && total >= 0) {
-            const unitario = (total / cantidad).toFixed(2);
+            const unitario = (total / cantidad).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             preview.textContent = 'Precio unitario: $' + unitario;
         } else {
             preview.textContent = 'Precio unitario: -';

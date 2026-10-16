@@ -32,21 +32,21 @@
     <div class="col-md-4">
         <div class="card"><div class="card-body">
             <h6>Balance económico-financiero</h6>
-            <p class="fs-3">${{ balance }}</p>
+            <p class="fs-3">{{ balance|moneda }}</p>
         </div></div>
     </div>
     <div class="col-md-6">
         <div class="card"><div class="card-body">
             <h6>Margen — Interno</h6>
-            <p class="fs-4">${{ margen_interno }}</p>
-            <small class="text-muted">Costo: ${{ costo_interno }}</small>
+            <p class="fs-4">{{ margen_interno|moneda }}</p>
+            <small class="text-muted">Costo: {{ costo_interno|moneda }}</small>
         </div></div>
     </div>
     <div class="col-md-6">
         <div class="card"><div class="card-body">
             <h6>Margen — Externo</h6>
-            <p class="fs-4">${{ margen_externo }}</p>
-            <small class="text-muted">Costo: ${{ costo_externo }}</small>
+            <p class="fs-4">{{ margen_externo|moneda }}</p>
+            <small class="text-muted">Costo: {{ costo_externo|moneda }}</small>
         </div></div>
     </div>
 </div>

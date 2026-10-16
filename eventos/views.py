@@ -39,6 +39,7 @@ from .management.commands.importar_informe2026 import (
     normalizar,
     obtener_o_crear_tipo_servicio,
 )
+from .templatetags.formatos import formato_moneda_ar
 from .models import (
     CategoriaInventario,
     Compra,
@@ -68,12 +69,6 @@ MESES_ES = {
     1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
     7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre',
 }
-
-
-def formato_moneda_ar(valor):
-    """Formatea un número al estilo argentino: punto para miles, coma para decimales."""
-    texto = f"{valor:,.2f}"
-    return texto.replace(',', 'X').replace('.', ',').replace('X', '.')
 
 
 def pluralizar(cantidad, singular, plural):
