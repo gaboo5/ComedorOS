@@ -1,28 +1,40 @@
 from django.urls import path
+
 from . import views
 
 urlpatterns = [
+    # Inicio y panel
     path('', views.inicio, name='inicio'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('agenda/', views.agenda, name='agenda'),
+
+    # Eventos
     path('eventos/nuevo/', views.evento_crear, name='evento_crear'),
     path('eventos/<int:pk>/editar/', views.evento_editar, name='evento_editar'),
     path('eventos/<int:pk>/eliminar/', views.evento_eliminar, name='evento_eliminar'),
+
+    # Solicitudes
+    path('solicitudes/', views.solicitud_lista, name='solicitud_lista'),
+    path('solicitudes/nueva/', views.solicitud_crear, name='solicitud_crear'),
+
+    # Presupuestos
     path('presupuestos/', views.presupuesto_lista, name='presupuesto_lista'),
     path('presupuestos/nuevo/', views.presupuesto_form, name='presupuesto_crear'),
     path('presupuestos/<int:pk>/', views.presupuesto_detalle, name='presupuesto_detalle'),
     path('presupuestos/<int:pk>/editar/', views.presupuesto_form, name='presupuesto_editar'),
+    path('presupuestos/<int:pk>/confirmar/', views.presupuesto_confirmar, name='presupuesto_confirmar'),
+    path('presupuestos/<int:pk>/eliminar/', views.presupuesto_eliminar, name='presupuesto_eliminar'),
     path('presupuestos/<int:pk>/exportar-word/', views.presupuesto_exportar_word, name='presupuesto_exportar_word'),
+
+    # Informes y finanzas
     path('informes/<int:periodo_id>/', views.informe_gestion_detalle, name='informe_gestion_detalle'),
     path('informes/<int:periodo_id>/editar/', views.informe_gestion_form, name='informe_gestion_form'),
     path('informes/<int:periodo_id>/exportar-word/', views.informe_gestion_exportar_word, name='informe_gestion_exportar_word'),
-    path('solicitudes/', views.solicitud_lista, name='solicitud_lista'),
-    path('solicitudes/nueva/', views.solicitud_crear, name='solicitud_crear'),
-    path('presupuestos/<int:pk>/confirmar/', views.presupuesto_confirmar, name='presupuesto_confirmar'),
-    path('presupuestos/<int:pk>/eliminar/', views.presupuesto_eliminar, name='presupuesto_eliminar'),
     path('ganancias/', views.rentabilidad, name='rentabilidad'),
-    path('sincronizar-excel/', views.sincronizar_excel, name='sincronizar_excel'),
     path('facturacion/', views.facturacion_mensual, name='facturacion_mensual'),
+    path('sincronizar-excel/', views.sincronizar_excel, name='sincronizar_excel'),
+
+    # Equipo
     path('integrantes/', views.integrante_lista, name='integrante_lista'),
     path('integrantes/nuevo/', views.integrante_form, name='integrante_crear'),
     path('integrantes/<int:pk>/editar/', views.integrante_form, name='integrante_editar'),
@@ -31,15 +43,19 @@ urlpatterns = [
     path('funciones/nueva/', views.funcion_form, name='funcion_crear'),
     path('funciones/<int:pk>/editar/', views.funcion_form, name='funcion_editar'),
     path('funciones/<int:pk>/eliminar/', views.funcion_eliminar, name='funcion_eliminar'),
+
+    # Compras y productos
     path('productos/', views.producto_lista, name='producto_lista'),
     path('productos/nuevo/', views.producto_form, name='producto_crear'),
+    path('productos/<int:pk>/', views.producto_detalle, name='producto_detalle'),
     path('productos/<int:pk>/editar/', views.producto_form, name='producto_editar'),
     path('compras/', views.compra_lista, name='compra_lista'),
     path('compras/nueva/', views.compra_form, name='compra_crear'),
     path('compras/<int:pk>/', views.compra_detalle, name='compra_detalle'),
     path('compras/<int:pk>/editar/', views.compra_form, name='compra_editar'),
     path('compras/<int:pk>/eliminar/', views.compra_eliminar, name='compra_eliminar'),
-    path('productos/<int:pk>/', views.producto_detalle, name='producto_detalle'),
+
+    # Pagos y personal eventual
     path('personas-eventuales/', views.persona_eventual_lista, name='persona_eventual_lista'),
     path('personas-eventuales/nueva/', views.persona_eventual_form, name='persona_eventual_crear'),
     path('personas-eventuales/<int:pk>/editar/', views.persona_eventual_form, name='persona_eventual_editar'),
@@ -48,6 +64,8 @@ urlpatterns = [
     path('pagos/nuevo/', views.pago_form, name='pago_crear'),
     path('pagos/<int:pk>/editar/', views.pago_form, name='pago_editar'),
     path('pagos/<int:pk>/eliminar/', views.pago_eliminar, name='pago_eliminar'),
+
+    # Inventario, lavandería y préstamos
     path('inventario/', views.inventario_lista, name='inventario_lista'),
     path('inventario/nuevo/', views.inventario_form, name='inventario_crear'),
     path('inventario/<int:pk>/editar/', views.inventario_form, name='inventario_editar'),

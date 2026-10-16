@@ -1,26 +1,103 @@
-from django.shortcuts import render
-from django.db.models import Sum
-from .models import Evento, Periodo
-import pandas as pd
-from .models import ItemEnvioLavanderia, ItemPrestamo
-from .forms import ItemEnvioLavanderiaFormSet, ItemPrestamoFormSet
-
+from io import BytesIO
 from itertools import groupby
+
+import pandas as pd
+from django.contrib import messages
+from django.db import transaction
+from django.db.models import Count, Sum
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Inches, Pt
+
+from .forms import (
+    CompraForm,
+    ElementoInventarioForm,
+    EnvioLavanderiaForm,
+    EventoForm,
+    EventoPresupuestoForm,
+    FuncionActividadForm,
+    InformeGestionForm,
+    IntegranteForm,
+    ItemCompraFormSet,
+    ItemCostoPersonalFormSet,
+    ItemEnvioLavanderiaFormSet,
+    ItemPrestamoFormSet,
+    OpcionMenuFormSet,
+    PagoForm,
+    PersonaEventualForm,
+    PrestamoForm,
+    PresupuestoForm,
+    ProductoForm,
+)
+from .management.commands.importar_informe2026 import (
+    a_decimal,
+    a_texto,
+    buscar_columna,
+    inferir_origen,
+    normalizar,
+    obtener_o_crear_tipo_servicio,
+)
+from .models import (
+    CategoriaInventario,
+    Compra,
+    DetalleCosto,
+    ElementoInventario,
+    EnvioLavanderia,
+    Evento,
+    FuncionActividad,
+    InformeGestion,
+    Integrante,
+    ItemCompra,
+    OpcionMenu,
+    Pago,
+    Periodo,
+    PersonaEventual,
+    Prestamo,
+    Presupuesto,
+    Producto,
+    ResumenFacturacionMensual,
+)
+
+# ======================================================================
+# HELPERS GENERALES
+# ======================================================================
 
 MESES_ES = {
     1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
     7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre',
 }
 
+
 def formato_moneda_ar(valor):
     """Formatea un número al estilo argentino: punto para miles, coma para decimales."""
     texto = f"{valor:,.2f}"
-    texto = texto.replace(',', 'X').replace('.', ',').replace('X', '.')
-    return texto
+    return texto.replace(',', 'X').replace('.', ',').replace('X', '.')
 
 
 def pluralizar(cantidad, singular, plural):
     return singular if cantidad == 1 else plural
+
+
+def periodo_para_fecha(fecha):
+    """Devuelve (creándolo si hace falta) el Periodo semestral al que pertenece una fecha."""
+    semestre = 1 if fecha.month <= 6 else 2
+    periodo, _ = Periodo.objects.get_or_create(anio=fecha.year, semestre=semestre)
+    return periodo
+
+
+def nombre_para_evento(evento, por_defecto):
+    """Arma el nombre 'Tipo de servicio - Cliente' de un evento."""
+    partes = [str(evento.tipo_servicio)] if evento.tipo_servicio else []
+    if evento.cliente:
+        partes.append(evento.cliente)
+    return ' - '.join(partes) or por_defecto
+
+# ======================================================================
+# AGENDA Y DASHBOARD
+# ======================================================================
+
 
 def agenda(request):
     periodo_id = request.GET.get('periodo')
@@ -82,9 +159,10 @@ def dashboard(request):
     }
     return render(request, 'eventos/dashboard.html', context)
 
-from django.shortcuts import redirect, get_object_or_404
-from .forms import EventoForm, ItemCostoPersonalFormSet
 
+# ======================================================================
+# EVENTOS (alta, edición, baja)
+# ======================================================================
 
 def evento_crear(request):
     if request.method == 'POST':
@@ -118,10 +196,10 @@ def evento_eliminar(request, pk):
         return redirect('agenda')
     return render(request, 'eventos/evento_confirmar_eliminar.html', {'evento': evento})
 
-from django.db import transaction
-from .models import Presupuesto, Periodo, OpcionMenu, DetalleCosto, TipoServicio
-from .forms import EventoPresupuestoForm, PresupuestoForm, OpcionMenuFormSet, ItemCostoPersonalFormSet
 
+# ======================================================================
+# PRESUPUESTOS
+# ======================================================================
 
 def presupuesto_form(request, pk=None):
     if pk:
@@ -141,13 +219,8 @@ def presupuesto_form(request, pk=None):
         if evento_form.is_valid() and presupuesto_form_obj.is_valid() and formset.is_valid() and formset_costo_personal.is_valid():
             with transaction.atomic():
                 evento = evento_form.save(commit=False)
-                semestre = 1 if evento.fecha.month <= 6 else 2
-                periodo, _ = Periodo.objects.get_or_create(anio=evento.fecha.year, semestre=semestre)
-                evento.periodo = periodo
-                nombre_partes = [str(evento.tipo_servicio)] if evento.tipo_servicio else []
-                if evento.cliente:
-                    nombre_partes.append(evento.cliente)
-                evento.nombre = ' - '.join(nombre_partes) or 'Evento sin nombre'
+                evento.periodo = periodo_para_fecha(evento.fecha)
+                evento.nombre = nombre_para_evento(evento, 'Evento sin nombre')
                 if not pk:
                     evento.estado_evento = 'presupuestado'
                 evento.save()
@@ -188,12 +261,6 @@ def presupuesto_detalle(request, pk):
     presupuesto = get_object_or_404(Presupuesto, pk=pk)
     return render(request, 'eventos/presupuesto_detalle.html', {'presupuesto': presupuesto})
 
-from io import BytesIO
-from django.http import HttpResponse
-from docx import Document
-from docx.shared import Pt, Inches
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-
 
 def presupuesto_exportar_word(request, pk):
     presupuesto = get_object_or_404(Presupuesto, pk=pk)
@@ -221,7 +288,7 @@ def presupuesto_exportar_word(request, pk):
 
     p = doc.add_paragraph()
     p.add_run('FECHA: ').bold = True
-    p.add_run(evento.fecha.strftime('%d de %B de %Y'))
+    p.add_run(f'{evento.fecha.day} de {MESES_ES[evento.fecha.month].lower()} de {evento.fecha.year}')
 
     p = doc.add_paragraph()
     p.add_run('LUGAR: ').bold = True
@@ -277,17 +344,17 @@ def presupuesto_exportar_word(request, pk):
         p.paragraph_format.left_indent = Inches(0.5)
         run = p.add_run(f'{nombre_op} — Regular: ')
         run.bold = True
-        p.add_run(f'${opcion.precio_regular:,.2f} por persona')
+        p.add_run(f'${formato_moneda_ar(opcion.precio_regular)} por persona')
 
         if opcion.precio_vegetariano:
             p = doc.add_paragraph()
             p.paragraph_format.left_indent = Inches(0.5)
-            p.add_run(f'   Vegetariano: ${opcion.precio_vegetariano:,.2f} por persona')
+            p.add_run(f'   Vegetariano: ${formato_moneda_ar(opcion.precio_vegetariano)} por persona')
 
         if opcion.precio_celiaco:
             p = doc.add_paragraph()
             p.paragraph_format.left_indent = Inches(0.5)
-            p.add_run(f'   Celíaco: ${opcion.precio_celiaco:,.2f} por persona')
+            p.add_run(f'   Celíaco: ${formato_moneda_ar(opcion.precio_celiaco)} por persona')
 
     doc.add_paragraph()
 
@@ -317,10 +384,10 @@ def presupuesto_exportar_word(request, pk):
     response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
     return response
 
-from django.db.models import Sum, Count
-from .models import InformeGestion
-from .forms import InformeGestionForm
 
+# ======================================================================
+# INFORME DE GESTIÓN
+# ======================================================================
 
 def calcular_indicadores_periodo(periodo):
     eventos = Evento.objects.filter(periodo=periodo, excluir_de_informe=False)
@@ -357,6 +424,7 @@ def calcular_indicadores_periodo(periodo):
         'unidades_destino': unidades_destino,
     }
 
+
 def calcular_desglose_mensual(periodo):
     eventos = Evento.objects.filter(periodo=periodo, excluir_de_informe=False).order_by('fecha')
     meses = []
@@ -371,6 +439,7 @@ def calcular_desglose_mensual(periodo):
             'margen': facturado - costo,
         })
     return meses
+
 
 def calcular_puntos_venta_excluidos(periodo):
     eventos = Evento.objects.filter(periodo=periodo, excluir_de_informe=True).order_by('fecha')
@@ -387,6 +456,7 @@ def calcular_puntos_venta_excluidos(periodo):
         total += monto
     return {'filas': filas, 'total': total}
 
+
 def calcular_raciones_periodo(periodo, total_personas):
     eventos = Evento.objects.filter(periodo=periodo, excluir_de_informe=False)
     total_celiaco = eventos.aggregate(t=Sum('cantidad_personas_celiaco'))['t'] or 0
@@ -395,6 +465,7 @@ def calcular_raciones_periodo(periodo, total_personas):
     ).aggregate(t=Sum('cantidad_vegetariano'))['t'] or 0
     total_comun = max(total_personas - total_celiaco - total_vegetariano, 0)
     return {'comun': total_comun, 'vegetariano': total_vegetariano, 'celiaco': total_celiaco}
+
 
 def informe_gestion_detalle(request, periodo_id):
     periodo = get_object_or_404(Periodo, pk=periodo_id)
@@ -420,6 +491,7 @@ def informe_gestion_form(request, periodo_id):
         form = InformeGestionForm(instance=informe)
 
     return render(request, 'eventos/informe_gestion_form.html', {'form': form, 'periodo': periodo})
+
 
 def informe_gestion_exportar_word(request, periodo_id):
     periodo = get_object_or_404(Periodo, pk=periodo_id)
@@ -474,16 +546,17 @@ def informe_gestion_exportar_word(request, periodo_id):
         fila = tabla.add_row().cells
         fila[0].text, fila[1].text, fila[2].text = cat, detalle, total
 
-    p = doc.add_paragraph()
-    run = p.add_run(
+    for nota in (
         'Nota: la cifra de Unidades de Destino puede incluir variantes de escritura del mismo organismo '
-        '(ej. nombres abreviados), por lo que es una estimación.'
+        '(ej. nombres abreviados), por lo que es una estimación.',
         'Nota: el desglose de Raciones/Menús Especiales solo refleja el detalle vegetariano/celíaco '
         'para los eventos donde se cargó esa información puntualmente; los eventos importados en bloque '
-        'desde registros históricos pueden no tener ese detalle disponible.'
-    )
-    run.italic = True
-    run.font.size = Pt(9)
+        'desde registros históricos pueden no tener ese detalle disponible.',
+    ):
+        p = doc.add_paragraph()
+        run = p.add_run(nota)
+        run.italic = True
+        run.font.size = Pt(9)
 
     doc.add_paragraph()
     agregar_titulo('4. Desglose de Servicios Realizados')
@@ -604,7 +677,6 @@ def informe_gestion_exportar_word(request, periodo_id):
     run.font.size = Pt(14)
     doc.add_paragraph()
 
-
     if resumen_fact['filas']:
         tabla_fact = doc.add_table(rows=1, cols=5)
         tabla_fact.style = 'Light Grid Accent 1'
@@ -625,7 +697,7 @@ def informe_gestion_exportar_word(request, periodo_id):
         fila_total[1].text = f"${formato_moneda_ar(resumen_fact['total_facturado'])}"
         fila_total[2].text = f"${formato_moneda_ar(resumen_fact['total_cobrado'])}"
         fila_total[3].text = f"${formato_moneda_ar(resumen_fact['total_pendiente'])}"
-        fila_total[4].text = f"{fila['porcentaje_general'] if False else resumen_fact['porcentaje_general']:.1f}%"
+        fila_total[4].text = f"{resumen_fact['porcentaje_general']:.1f}%"
         doc.add_paragraph()
         p = doc.add_paragraph()
         run = p.add_run(
@@ -648,18 +720,18 @@ def informe_gestion_exportar_word(request, periodo_id):
     response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
     return response
 
+
+# ======================================================================
+# SOLICITUDES
+# ======================================================================
+
 def solicitud_crear(request):
     if request.method == 'POST':
         form = EventoPresupuestoForm(request.POST)
         if form.is_valid():
             evento = form.save(commit=False)
-            semestre = 1 if evento.fecha.month <= 6 else 2
-            periodo, _ = Periodo.objects.get_or_create(anio=evento.fecha.year, semestre=semestre)
-            evento.periodo = periodo
-            nombre_partes = [str(evento.tipo_servicio)] if evento.tipo_servicio else []
-            if evento.cliente:
-                nombre_partes.append(evento.cliente)
-            evento.nombre = ' - '.join(nombre_partes) or 'Solicitud sin nombre'
+            evento.periodo = periodo_para_fecha(evento.fecha)
+            evento.nombre = nombre_para_evento(evento, 'Solicitud sin nombre')
             evento.estado_evento = 'solicitud'
             evento.save()
             return redirect('solicitud_lista')
@@ -672,6 +744,7 @@ def solicitud_crear(request):
 def solicitud_lista(request):
     solicitudes = Evento.objects.filter(estado_evento='solicitud').order_by('fecha')
     return render(request, 'eventos/solicitud_lista.html', {'solicitudes': solicitudes})
+
 
 def presupuesto_confirmar(request, pk):
     presupuesto = get_object_or_404(Presupuesto, pk=pk)
@@ -693,12 +766,18 @@ def presupuesto_confirmar(request, pk):
 
     return render(request, 'eventos/presupuesto_confirmar.html', {'presupuesto': presupuesto})
 
+
 def presupuesto_eliminar(request, pk):
     presupuesto = get_object_or_404(Presupuesto, pk=pk)
     if request.method == 'POST':
         presupuesto.delete()
         return redirect('presupuesto_lista')
     return render(request, 'eventos/presupuesto_confirmar_eliminar.html', {'presupuesto': presupuesto})
+
+
+# ======================================================================
+# RENTABILIDAD Y SINCRONIZACIÓN CON EXCEL
+# ======================================================================
 
 def rentabilidad(request):
     periodo_id = request.GET.get('periodo')
@@ -745,11 +824,6 @@ def rentabilidad(request):
         'total_general_margen': total_general_facturado - total_general_costo,
     }
     return render(request, 'eventos/rentabilidad.html', context)
-
-from eventos.management.commands.importar_informe2026 import (
-    normalizar, buscar_columna, a_decimal, a_texto, inferir_origen, obtener_o_crear_tipo_servicio
-)
-from django.contrib import messages
 
 
 def sincronizar_excel(request):
@@ -814,9 +888,8 @@ def sincronizar_excel(request):
 
                 nombre_evento = f"{tipo_servicio_nombre} - {cliente}" if cliente else tipo_servicio_nombre
                 nombre_evento = nombre_evento[:200]
-                semestre = 1 if fecha.month <= 6 else 2
 
-                periodo, _ = Periodo.objects.get_or_create(anio=fecha.year, semestre=semestre)
+                periodo = periodo_para_fecha(fecha)
                 tipo_servicio = obtener_o_crear_tipo_servicio(tipo_servicio_nombre)
 
                 evento = Evento.objects.create(
@@ -858,8 +931,10 @@ def sincronizar_excel(request):
 
     return render(request, 'eventos/sincronizar_excel.html')
 
-from .models import ResumenFacturacionMensual
 
+# ======================================================================
+# FACTURACIÓN MENSUAL
+# ======================================================================
 
 def calcular_resumen_facturacion(periodo):
     resumenes = ResumenFacturacionMensual.objects.filter(periodo=periodo).order_by('mes')
@@ -902,12 +977,18 @@ def facturacion_mensual(request):
         'resumen': resumen,
     })
 
+
+# ======================================================================
+# INICIO
+# ======================================================================
+
 def inicio(request):
     return render(request, 'eventos/inicio.html')
 
-from .models import Integrante, FuncionActividad
-from .forms import IntegranteForm, FuncionActividadForm
 
+# ======================================================================
+# EQUIPO: INTEGRANTES Y FUNCIONES
+# ======================================================================
 
 def integrante_lista(request):
     integrantes = Integrante.objects.all()
@@ -958,9 +1039,10 @@ def funcion_eliminar(request, pk):
         return redirect('funcion_lista')
     return render(request, 'eventos/funcion_confirmar_eliminar.html', {'funcion': funcion})
 
-from .models import Producto, Compra, ItemCompra
-from .forms import ProductoForm, CompraForm, ItemCompraFormSet
 
+# ======================================================================
+# COMPRAS Y PRODUCTOS
+# ======================================================================
 
 def producto_lista(request):
     productos = Producto.objects.all()
@@ -1045,9 +1127,9 @@ def producto_detalle(request, pk):
     })
 
 
-from .models import PersonaEventual, Pago
-from .forms import PersonaEventualForm, PagoForm
-
+# ======================================================================
+# PAGOS Y PERSONAL EVENTUAL
+# ======================================================================
 
 def persona_eventual_lista(request):
     personas = PersonaEventual.objects.all()
@@ -1096,9 +1178,10 @@ def pago_eliminar(request, pk):
         return redirect('pago_lista_todos')
     return render(request, 'eventos/pago_confirmar_eliminar.html', {'pago': pago})
 
-from .models import CategoriaInventario, ElementoInventario, EnvioLavanderia, Prestamo
-from .forms import ElementoInventarioForm, EnvioLavanderiaForm, PrestamoForm
 
+# ======================================================================
+# INVENTARIO, LAVANDERÍA Y PRÉSTAMOS
+# ======================================================================
 
 def inventario_lista(request):
     categoria_id = request.GET.get('categoria')
@@ -1127,6 +1210,7 @@ def lavanderia_lista(request):
     envios = EnvioLavanderia.objects.prefetch_related('items__elemento').all()
     return render(request, 'eventos/lavanderia_lista.html', {'envios': envios})
 
+
 def lavanderia_form(request, pk=None):
     envio = get_object_or_404(EnvioLavanderia, pk=pk) if pk else EnvioLavanderia()
     if request.method == 'POST':
@@ -1145,9 +1229,11 @@ def lavanderia_form(request, pk=None):
         'form': form, 'formset': formset, 'editando': pk is not None,
     })
 
+
 def prestamo_lista(request):
     prestamos = Prestamo.objects.prefetch_related('items__elemento').all()
     return render(request, 'eventos/prestamo_lista.html', {'prestamos': prestamos})
+
 
 def prestamo_form(request, pk=None):
     prestamo = get_object_or_404(Prestamo, pk=pk) if pk else Prestamo()
