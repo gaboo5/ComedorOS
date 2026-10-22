@@ -1,64 +1,168 @@
 {% extends 'eventos/base.html' %}
 {% block content %}
-<div class="text-center mb-5 mt-3">
-    <h2>Bienvenido a ComedorOS</h2>
-    <p class="text-muted">Sistema de gestión de eventos — Comedor Universitario UNCuyo</p>
+<style>
+    .tarjeta-dato { transition: box-shadow .15s; }
+    .tarjeta-dato:hover { box-shadow: 0 .25rem .75rem rgba(0,0,0,.08); }
+    .tarjeta-dato .numero { font-size: 2rem; font-weight: 600; line-height: 1.1; }
+    .fecha-bloque { min-width: 3.2rem; }
+    .fecha-bloque .dia { font-size: 1.35rem; font-weight: 600; line-height: 1; }
+</style>
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-4">
+    <div>
+        <h2 class="mb-0">Inicio</h2>
+        <span class="text-muted">{{ hoy|date:"l j \d\e F \d\e Y"|capfirst }}</span>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'solicitud_crear' %}" class="btn btn-sm btn-primary"><i class="bi bi-inbox me-1"></i>Nueva solicitud</a>
+        <a href="{% url 'evento_crear' %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-calendar-plus me-1"></i>Nuevo evento</a>
+        <a href="{% url 'compra_crear' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-cart-plus me-1"></i>Compra</a>
+        <a href="{% url 'pago_crear' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-cash-coin me-1"></i>Pago</a>
+    </div>
 </div>
 
-<div class="row g-3 justify-content-center">
-    <div class="col-md-4">
-        <a href="{% url 'agenda' %}" class="text-decoration-none">
-            <div class="card h-100 text-center p-3">
-                <i class="bi bi-calendar3 fs-1 text-primary"></i>
-                <h5 class="mt-2">Agenda</h5>
-                <p class="text-muted small mb-0">Ver y gestionar eventos por mes</p>
+{% for j in jornadas_abiertas %}
+<div class="alert alert-success d-flex flex-wrap justify-content-between align-items-center gap-2 py-2">
+    <span><i class="bi bi-shop me-1"></i>Jornada de venta abierta: <strong>{{ j.nombre }}</strong> ({{ j.fecha|date:"d/m" }})</span>
+    <a href="{% url 'pv_caja' j.pk %}" class="btn btn-success btn-sm"><i class="bi bi-calculator me-1"></i>Ir a la caja</a>
+</div>
+{% endfor %}
+
+<!-- Números del día -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <a href="{% url 'agenda' %}" class="text-decoration-none text-reset">
+            <div class="card tarjeta-dato h-100 p-3">
+                <div class="text-muted small"><i class="bi bi-calendar-week me-1"></i>Próximos 7 días</div>
+                <div class="numero">{{ proximos|length }}</div>
+                <div class="small text-muted">{% if personas_proximos %}{{ personas_proximos }} personas en total{% else %}eventos{% endif %}</div>
             </div>
         </a>
     </div>
-    <div class="col-md-4">
-        <a href="{% url 'solicitud_lista' %}" class="text-decoration-none">
-            <div class="card h-100 text-center p-3">
-                <i class="bi bi-inbox fs-1 text-secondary"></i>
-                <h5 class="mt-2">Solicitudes</h5>
-                <p class="text-muted small mb-0">Pedidos sin presupuestar todavía</p>
+    <div class="col-6 col-lg-3">
+        <a href="{% url 'solicitud_lista' %}" class="text-decoration-none text-reset">
+            <div class="card tarjeta-dato h-100 p-3 {% if total_solicitudes %}border-warning{% endif %}">
+                <div class="text-muted small"><i class="bi bi-inbox me-1"></i>Solicitudes sin presupuestar</div>
+                <div class="numero">{{ total_solicitudes }}</div>
+                <div class="small text-muted">{% if total_solicitudes %}esperando presupuesto{% else %}todo al día{% endif %}</div>
             </div>
         </a>
     </div>
-    <div class="col-md-4">
-        <a href="{% url 'presupuesto_lista' %}" class="text-decoration-none">
-            <div class="card h-100 text-center p-3">
-                <i class="bi bi-file-earmark-text fs-1 text-success"></i>
-                <h5 class="mt-2">Presupuestos</h5>
-                <p class="text-muted small mb-0">Armar y consultar presupuestos</p>
+    <div class="col-6 col-lg-3">
+        <a href="{% url 'presupuesto_lista' %}" class="text-decoration-none text-reset">
+            <div class="card tarjeta-dato h-100 p-3">
+                <div class="text-muted small"><i class="bi bi-hourglass-split me-1"></i>Presupuestos sin confirmar</div>
+                <div class="numero">{{ total_sin_confirmar }}</div>
+                <div class="small text-muted">esperando respuesta del cliente</div>
             </div>
         </a>
     </div>
-    <div class="col-md-4">
-        <a href="{% url 'dashboard' %}" class="text-decoration-none">
-            <div class="card h-100 text-center p-3">
-                <i class="bi bi-speedometer2 fs-1 text-info"></i>
-                <h5 class="mt-2">Indicadores</h5>
-                <p class="text-muted small mb-0">Dashboard e informes de gestión</p>
+    <div class="col-6 col-lg-3">
+        <a href="{% url 'rentabilidad' %}" class="text-decoration-none text-reset">
+            <div class="card tarjeta-dato h-100 p-3">
+                <div class="text-muted small"><i class="bi bi-receipt me-1"></i>Facturación del semestre</div>
+                <div class="small mt-1"><strong>{{ por_facturar_cantidad }}</strong> por facturar · {{ por_facturar_monto|moneda }}</div>
+                <div class="small"><strong>{{ por_cobrar_cantidad }}</strong> por cobrar · {{ por_cobrar_monto|moneda }}</div>
             </div>
         </a>
     </div>
-    <div class="col-md-4">
-        <a href="{% url 'rentabilidad' %}" class="text-decoration-none">
-            <div class="card h-100 text-center p-3">
-                <i class="bi bi-graph-up fs-1 text-warning"></i>
-                <h5 class="mt-2">Ganancias</h5>
-                <p class="text-muted small mb-0">Rentabilidad por evento y mes</p>
+</div>
+
+<div class="row g-4">
+    <!-- Próximos eventos -->
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Próximos 7 días</strong>
+                <a href="{% url 'agenda' %}" class="small">Ver agenda</a>
             </div>
-        </a>
+            <div class="list-group list-group-flush">
+                {% for e in proximos %}
+                <a href="{% url 'evento_editar' e.pk %}" class="list-group-item list-group-item-action d-flex gap-3 align-items-center {% if e.fecha == hoy %}list-group-item-primary{% endif %}">
+                    <div class="fecha-bloque text-center">
+                        <div class="dia">{{ e.fecha|date:"d" }}</div>
+                        <div class="small text-muted text-uppercase">{% if e.fecha == hoy %}hoy{% else %}{{ e.fecha|date:"D" }}{% endif %}</div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold">{{ e.tipo_servicio|default:"Evento" }}</div>
+                        <div class="small text-muted">{{ e.cliente|default:"Sin cliente" }}{% if e.cantidad_personas %} · {{ e.cantidad_personas }} personas{% endif %}</div>
+                    </div>
+                    <span class="badge bg-{{ e.color_estado_evento }}">{{ e.get_estado_evento_display }}</span>
+                </a>
+                {% empty %}
+                <div class="list-group-item text-muted">
+                    No hay eventos en los próximos 7 días.
+                    {% if siguiente %}
+                    <div class="mt-1">El siguiente es el <a href="{% url 'evento_editar' siguiente.pk %}">{{ siguiente.fecha|date:"l j \d\e F" }}</a>: {{ siguiente.tipo_servicio|default:"Evento" }} — {{ siguiente.cliente|default:"Sin cliente" }}.</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
-    <div class="col-md-4">
-        <a href="{% url 'facturacion_mensual' %}" class="text-decoration-none">
-            <div class="card h-100 text-center p-3">
-                <i class="bi bi-receipt fs-1 text-danger"></i>
-                <h5 class="mt-2">Facturación</h5>
-                <p class="text-muted small mb-0">Facturación y cobros por mes</p>
+
+    <!-- Pendientes -->
+    <div class="col-lg-5 d-flex flex-column gap-4">
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Solicitudes sin presupuestar</strong>
+                <a href="{% url 'solicitud_lista' %}" class="small">Ver todas</a>
             </div>
-        </a>
+            <div class="list-group list-group-flush">
+                {% for s in solicitudes %}
+                <div class="list-group-item d-flex justify-content-between align-items-center gap-2">
+                    <div>
+                        <div class="small fw-semibold">{{ s.fecha|date:"d/m" }} · {{ s.tipo_servicio|default:"Evento" }}</div>
+                        <div class="small text-muted">{{ s.cliente|default:"Sin cliente" }}</div>
+                    </div>
+                    <a href="{% url 'presupuesto_crear' %}?evento_id={{ s.pk }}" class="btn btn-sm btn-success text-nowrap">Presupuestar</a>
+                </div>
+                {% empty %}
+                <div class="list-group-item small text-muted">No hay solicitudes pendientes.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Presupuestos sin confirmar</strong>
+                <a href="{% url 'presupuesto_lista' %}" class="small">Ver todos</a>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for e in sin_confirmar %}
+                {% if e.presupuesto %}
+                <a href="{% url 'presupuesto_detalle' e.presupuesto.pk %}" class="list-group-item list-group-item-action">
+                {% else %}
+                <a href="{% url 'evento_editar' e.pk %}" class="list-group-item list-group-item-action">
+                {% endif %}
+                    <div class="small fw-semibold">{{ e.fecha|date:"d/m" }} · {{ e.tipo_servicio|default:"Evento" }}</div>
+                    <div class="small text-muted">{{ e.cliente|default:"Sin cliente" }}</div>
+                </a>
+                {% empty %}
+                <div class="list-group-item small text-muted">No hay presupuestos esperando confirmación.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>Elementos fuera del comedor</strong>
+                <span class="small text-muted">{{ unidades_afuera }} unidades</span>
+            </div>
+            <div class="list-group list-group-flush">
+                {% for x in afuera %}
+                <a href="{% url x.url x.pk %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="small fw-semibold">{{ x.tipo }} · {{ x.detalle }}</div>
+                        <div class="small text-muted">{{ x.unidades }} unidades desde el {{ x.fecha|date:"d/m" }}</div>
+                    </div>
+                    <span class="badge {% if x.dias > 7 %}bg-danger{% else %}bg-light text-dark border{% endif %}">{{ x.dias }} día{{ x.dias|pluralize }}</span>
+                </a>
+                {% empty %}
+                <div class="list-group-item small text-muted">Todo el inventario está en el comedor.</div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

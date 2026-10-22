@@ -1,0 +1,112 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+    <h2 class="mb-0">Cierre de jornada</h2>
+    <div class="d-flex flex-wrap gap-2">
+        {% if jornada.abierta %}<a href="{% url 'pv_caja' jornada.pk %}" class="btn btn-primary btn-sm"><i class="bi bi-calculator me-1"></i>Caja</a>{% endif %}
+        <a href="{% url 'pv_tickets' jornada.pk %}" class="btn btn-outline-secondary btn-sm">Tickets</a>
+        <a href="{% url 'pv_carta' jornada.pk %}" class="btn btn-outline-secondary btn-sm">Carta</a>
+        <a href="{% url 'pv_jornada_editar' jornada.pk %}" class="btn btn-outline-secondary btn-sm">Editar datos</a>
+    </div>
+</div>
+<p class="text-muted">
+    {{ jornada.nombre }} · {{ jornada.fecha|date:"l j \d\e F \d\e Y"|capfirst }} ·
+    {% if jornada.abierta %}<span class="badge bg-success">Abierta</span>{% else %}<span class="badge bg-secondary">Cerrada</span>{% endif %}
+</p>
+
+<!-- Totales -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3"><div class="card p-3 h-100"><div class="small text-muted">Total vendido</div><div class="fs-3 fw-bold">{{ totales.total|moneda:0 }}</div><div class="small text-muted">{{ cantidad_tickets }} ticket{{ cantidad_tickets|pluralize }}{% if anulados %} · {{ anulados }} anulado{{ anulados|pluralize }}{% endif %}</div></div></div>
+    <div class="col-6 col-lg-3"><div class="card p-3 h-100"><div class="small text-muted"><i class="bi bi-cash me-1"></i>Efectivo</div><div class="fs-3 fw-bold text-success">{{ totales.efectivo|moneda:0 }}</div><div class="small text-muted">lo que tiene que haber en la caja</div></div></div>
+    <div class="col-6 col-lg-3"><div class="card p-3 h-100"><div class="small text-muted"><i class="bi bi-qr-code me-1"></i>QR</div><div class="fs-3 fw-bold text-primary">{{ totales.qr|moneda:0 }}</div></div></div>
+    <div class="col-6 col-lg-3"><div class="card p-3 h-100"><div class="small text-muted">Por caja</div>
+        {% for c in por_caja %}<div class="small"><strong>{{ c.caja }}</strong>: {{ c.total|moneda:0 }} <span class="text-muted">({{ c.tickets }})</span></div>
+        {% empty %}<div class="small text-muted">Sin ventas</div>{% endfor %}
+    </div></div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-8">
+        <h5>Productos</h5>
+        <div class="table-responsive">
+        <table class="table table-sm align-middle bg-white">
+            <thead><tr>
+                <th>Producto</th><th class="text-end">Sueltos</th><th class="text-end">En promos</th><th class="text-end">Total u.</th>
+                {% if hay_stock %}<th class="text-end">Llevé</th><th class="text-end">Sobró</th>{% endif %}
+                <th class="text-end">Recaudado suelto</th>
+            </tr></thead>
+            <tbody>
+                {% for p in productos %}
+                <tr class="{% if not p.unidades %}text-muted{% endif %}">
+                    <td>{{ p.nombre }} <span class="small text-muted">· {{ p.categoria }}</span></td>
+                    <td class="text-end">{{ p.sueltos }}</td>
+                    <td class="text-end">{{ p.en_promos|default:"-" }}</td>
+                    <td class="text-end fw-semibold">{{ p.unidades }}</td>
+                    {% if hay_stock %}
+                    <td class="text-end">{{ p.stock_inicial|default_if_none:"-" }}</td>
+                    <td class="text-end {% if p.sobrante is not None and p.sobrante < 0 %}text-danger fw-semibold{% endif %}">{{ p.sobrante|default_if_none:"-" }}</td>
+                    {% endif %}
+                    <td class="text-end">{{ p.recaudado|moneda:0 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-muted">La carta está vacía.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% if hay_stock %}<p class="small text-muted">Un sobrante negativo (en rojo) indica que se vendió más de lo cargado como stock: revisá lo que se llevó.</p>{% endif %}
+
+        {% if promos %}
+        <h5 class="mt-4">Promos</h5>
+        <div class="table-responsive">
+        <table class="table table-sm align-middle bg-white">
+            <thead><tr><th>Promo</th><th class="text-end">Vendidas</th><th class="text-end">Recaudado</th></tr></thead>
+            <tbody>
+                {% for p in promos %}
+                <tr><td>{{ p.nombre }} <div class="small text-muted">{{ p.detalle }}</div></td><td class="text-end">{{ p.cantidad }}</td><td class="text-end">{{ p.recaudado|moneda:0 }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-xl-4">
+        <h5>Por categoría</h5>
+        <ul class="list-group mb-4">
+            {% for nombre, monto in por_categoria %}
+            <li class="list-group-item d-flex justify-content-between"><span>{{ nombre }}</span><strong>{{ monto|moneda:0 }}</strong></li>
+            {% empty %}
+            <li class="list-group-item text-muted small">Sin ventas todavía.</li>
+            {% endfor %}
+        </ul>
+
+        <div class="card">
+            <div class="card-body">
+                <h6>Agenda</h6>
+                {% if jornada.evento %}
+                <p class="small mb-2">Vinculada a <a href="{% url 'evento_editar' jornada.evento.pk %}">{{ jornada.evento }}</a> (facturado: {{ jornada.evento.precio_facturado|moneda:0 }}).</p>
+                {% else %}
+                <p class="small text-muted mb-2">Registrá el total en la Agenda para que aparezca en Ganancias y en el informe de gestión.</p>
+                {% endif %}
+                <form method="post" action="{% url 'pv_registrar_evento' jornada.pk %}" class="mb-3">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="bi bi-calendar-check me-1"></i>{% if jornada.evento %}Actualizar total en la Agenda{% else %}Registrar en la Agenda{% endif %}
+                    </button>
+                </form>
+                <h6>Estado</h6>
+                <form method="post" action="{% url 'pv_jornada_estado' jornada.pk %}">
+                    {% csrf_token %}
+                    {% if jornada.abierta %}
+                    <p class="small text-muted mb-2">Al cerrarla, la caja deja de aceptar ventas. Se puede reabrir.</p>
+                    <button type="submit" class="btn btn-dark btn-sm w-100"><i class="bi bi-lock me-1"></i>Cerrar jornada</button>
+                    {% else %}
+                    <button type="submit" class="btn btn-outline-dark btn-sm w-100"><i class="bi bi-unlock me-1"></i>Reabrir jornada</button>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

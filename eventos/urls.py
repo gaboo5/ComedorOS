@@ -59,6 +59,7 @@ urlpatterns = [
     path('personas-eventuales/', views.persona_eventual_lista, name='persona_eventual_lista'),
     path('personas-eventuales/nueva/', views.persona_eventual_form, name='persona_eventual_crear'),
     path('personas-eventuales/<int:pk>/editar/', views.persona_eventual_form, name='persona_eventual_editar'),
+    path('personas-eventuales/<int:pk>/eliminar/', views.persona_eventual_eliminar, name='persona_eventual_eliminar'),
     path('pagos/', views.pago_lista, name='pago_lista_todos'),
     path('pagos/tipo/<str:tipo>/', views.pago_lista, name='pago_lista_tipo'),
     path('pagos/nuevo/', views.pago_form, name='pago_crear'),
@@ -72,7 +73,9 @@ urlpatterns = [
     path('lavanderia/', views.lavanderia_lista, name='lavanderia_lista'),
     path('lavanderia/nuevo/', views.lavanderia_form, name='lavanderia_crear'),
     path('lavanderia/<int:pk>/editar/', views.lavanderia_form, name='lavanderia_editar'),
+    path('lavanderia/<int:pk>/eliminar/', views.lavanderia_eliminar, name='lavanderia_eliminar'),
     path('prestamos/', views.prestamo_lista, name='prestamo_lista'),
     path('prestamos/nuevo/', views.prestamo_form, name='prestamo_crear'),
     path('prestamos/<int:pk>/editar/', views.prestamo_form, name='prestamo_editar'),
+    path('prestamos/<int:pk>/eliminar/', views.prestamo_eliminar, name='prestamo_eliminar'),
 ]

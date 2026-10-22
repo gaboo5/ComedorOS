@@ -1,0 +1,15 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>Eliminar envío a lavandería</h2>
+<p>¿Seguro que querés eliminar el envío del <strong>{{ envio.fecha_envio|date:"d/m/Y" }}</strong>{% if envio.proveedor %} a {{ envio.proveedor }}{% endif %}?</p>
+<ul>
+    {% for i in envio.items.all %}<li>{{ i.cantidad }} × {{ i.elemento.nombre }}</li>{% empty %}<li class="text-muted">Sin elementos</li>{% endfor %}
+</ul>
+{% if envio.factura %}<p class="small text-muted">También se va a borrar la factura adjunta.</p>{% endif %}
+{% if envio.esta_pendiente %}<p class="small text-muted">Estos elementos vuelven a contar como disponibles en el inventario.</p>{% endif %}
+<form method="post" class="d-flex gap-2">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+    <a href="{% url 'lavanderia_lista' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

@@ -1,6 +1,6 @@
 {% extends 'eventos/base.html' %}
 {% block content %}
-<h2>Nuevo Presupuesto</h2>
+<h2>{% if editando %}Editar presupuesto{% else %}Nuevo presupuesto{% endif %}</h2>
 <form method="post">
     {% csrf_token %}
 
@@ -28,59 +28,97 @@
 
     <h5 class="mt-4">Opciones de menú</h5>
     {{ formset.management_form }}
-    {% for opcion_form in formset %}
-    <div class="border rounded p-3 mb-3">
+    {% if formset.non_form_errors %}<div class="alert alert-danger py-2">{{ formset.non_form_errors|join:" " }}</div>{% endif %}
+    <div data-formset="{{ formset.prefix }}">
+        {% for opcion_form in formset %}
+        <div class="border rounded p-3 mb-3 bg-white fila-formset">
+            {{ opcion_form.id }}<div class="d-none">{{ opcion_form.DELETE }}</div>
+            <div class="d-flex justify-content-end"><button type="button" class="btn btn-outline-danger btn-sm btn-quitar"><i class="bi bi-trash me-1"></i>Quitar opción</button></div>
         <div class="row">
-            <div class="col-md-3 mb-2">
-            <label class="form-label">Nombre</label>
-            {{ opcion_form.nombre }}
-        </div>
-        <div class="col-md-3 mb-2">
-            <label class="form-label">Precio Regular</label>
-            {{ opcion_form.precio_regular }}
-        </div>
-        <div class="col-md-3 mb-2">
-            <label class="form-label">Precio Vegetariano</label>
-            {{ opcion_form.precio_vegetariano }}
-        </div>
-        <div class="col-md-3 mb-2">
-            <label class="form-label">Precio Celíaco</label>
-            {{ opcion_form.precio_celiaco }}
-        </div>
-        <div class="col-md-2 mb-2">
-            <label class="form-label">Orden</label>
-            {{ opcion_form.orden }}
-        </div>
+            <div class="col-md-3 mb-2"><label class="form-label">Nombre</label>{{ opcion_form.nombre }}</div>
+            <div class="col-md-3 mb-2"><label class="form-label">Precio Regular</label>{{ opcion_form.precio_regular }}</div>
+            <div class="col-md-3 mb-2"><label class="form-label">Precio Vegetariano</label>{{ opcion_form.precio_vegetariano }}</div>
+            <div class="col-md-3 mb-2"><label class="form-label">Precio Celíaco</label>{{ opcion_form.precio_celiaco }}</div>
+            <div class="col-md-2 mb-2"><label class="form-label">Orden</label>{{ opcion_form.orden }}</div>
         </div>
         <label class="form-label">Detalle del menú (un plato por línea)</label>
         {{ opcion_form.detalle_menu }}
-        {% if opcion_form.errors %}<div class="text-danger small">{{ opcion_form.errors }}</div>{% endif %}
+            {% if opcion_form.errors %}<div class="text-danger small mt-1">{% for e in opcion_form.errors.values %}{{ e|join:" " }} {% endfor %}</div>{% endif %}
+        </div>
+        {% endfor %}
     </div>
-    {% endfor %}
+    <template id="tpl-{{ formset.prefix }}">
+        <div class="border rounded p-3 mb-3 bg-white fila-formset">
+            {{ formset.empty_form.id }}<div class="d-none">{{ formset.empty_form.DELETE }}</div>
+            <div class="d-flex justify-content-end"><button type="button" class="btn btn-outline-danger btn-sm btn-quitar"><i class="bi bi-trash me-1"></i>Quitar opción</button></div>
+        <div class="row">
+            <div class="col-md-3 mb-2"><label class="form-label">Nombre</label>{{ formset.empty_form.nombre }}</div>
+            <div class="col-md-3 mb-2"><label class="form-label">Precio Regular</label>{{ formset.empty_form.precio_regular }}</div>
+            <div class="col-md-3 mb-2"><label class="form-label">Precio Vegetariano</label>{{ formset.empty_form.precio_vegetariano }}</div>
+            <div class="col-md-3 mb-2"><label class="form-label">Precio Celíaco</label>{{ formset.empty_form.precio_celiaco }}</div>
+            <div class="col-md-2 mb-2"><label class="form-label">Orden</label>{{ formset.empty_form.orden }}</div>
+        </div>
+        <label class="form-label">Detalle del menú (un plato por línea)</label>
+        {{ formset.empty_form.detalle_menu }}
+        </div>
+    </template>
+    <button type="button" class="btn btn-outline-primary btn-sm mb-2" data-agregar="{{ formset.prefix }}">+ Agregar opción de menú</button>
 
-    <h5 class="mt-4">Costos de Personal</h5>
+    <h5 class="mt-4">Costos de personal</h5>
     {{ formset_costo_personal.management_form }}
-    {% for item_form in formset_costo_personal %}
-    <div class="border rounded p-3 mb-2 row align-items-end">
-        <div class="col-md-4">
-            <label class="form-label">Concepto</label>
-            {{ item_form.concepto }}
+    {% if formset_costo_personal.non_form_errors %}<div class="alert alert-danger py-2">{{ formset_costo_personal.non_form_errors|join:" " }}</div>{% endif %}
+    <div data-formset="{{ formset_costo_personal.prefix }}" id="costosPersonal">
+        {% for item_form in formset_costo_personal %}
+        <div class="border rounded p-2 mb-2 bg-white row g-2 align-items-end mx-0 fila-formset">
+            {{ item_form.id }}<div class="d-none">{{ item_form.DELETE }}</div>
+        <div class="col-12 col-md-4"><label class="form-label small mb-1">Concepto</label>{{ item_form.concepto }}</div>
+        <div class="col-5 col-md-2"><label class="form-label small mb-1">Personas</label>{{ item_form.cantidad_personas }}</div>
+        <div class="col-7 col-md-3"><label class="form-label small mb-1">Precio por persona</label>{{ item_form.precio_por_persona }}</div>
+        <div class="col-8 col-md-2 small text-muted subtotal-costo"></div>
+            <div class="col-4 col-md-1 text-end"><button type="button" class="btn btn-outline-danger btn-sm btn-quitar" title="Quitar"><i class="bi bi-x-lg"></i></button></div>
+            {% if item_form.errors %}<div class="col-12 text-danger small">{% for e in item_form.errors.values %}{{ e|join:" " }} {% endfor %}</div>{% endif %}
         </div>
-        <div class="col-md-3">
-            <label class="form-label">Cantidad de personas</label>
-            {{ item_form.cantidad_personas }}
-        </div>
-        <div class="col-md-3">
-            <label class="form-label">Precio por persona</label>
-            {{ item_form.precio_por_persona }}
-        </div>
-        {% if item_form.instance.pk %}
-        <div class="col-md-2">{{ item_form.DELETE }} <label>Eliminar</label></div>
-        {% endif %}
+        {% endfor %}
     </div>
-    {% endfor %}
+    <template id="tpl-{{ formset_costo_personal.prefix }}">
+        <div class="border rounded p-2 mb-2 bg-white row g-2 align-items-end mx-0 fila-formset">
+            {{ formset_costo_personal.empty_form.id }}<div class="d-none">{{ formset_costo_personal.empty_form.DELETE }}</div>
+        <div class="col-12 col-md-4"><label class="form-label small mb-1">Concepto</label>{{ formset_costo_personal.empty_form.concepto }}</div>
+        <div class="col-5 col-md-2"><label class="form-label small mb-1">Personas</label>{{ formset_costo_personal.empty_form.cantidad_personas }}</div>
+        <div class="col-7 col-md-3"><label class="form-label small mb-1">Precio por persona</label>{{ formset_costo_personal.empty_form.precio_por_persona }}</div>
+        <div class="col-8 col-md-2 small text-muted subtotal-costo"></div>
+            <div class="col-4 col-md-1 text-end"><button type="button" class="btn btn-outline-danger btn-sm btn-quitar" title="Quitar"><i class="bi bi-x-lg"></i></button></div>
+        </div>
+    </template>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <button type="button" class="btn btn-outline-primary btn-sm" data-agregar="{{ formset_costo_personal.prefix }}">+ Agregar costo de personal</button>
+        <strong>Total costo de personal: <span id="totalCostoPersonal">$0</span></strong>
+    </div>
 
     <button type="submit" class="btn btn-primary">Guardar presupuesto</button>
     <a href="{% url 'agenda' %}" class="btn btn-secondary">Cancelar</a>
 </form>
+{% include 'eventos/_formset_filas.html' %}
+<script>
+// Subtotal por fila y total del costo de personal, en vivo.
+(function () {
+    const cont = document.getElementById('costosPersonal');
+    const fmt = n => '$' + Math.round(n).toLocaleString('es-AR');
+    function recalcular() {
+        let total = 0;
+        cont.querySelectorAll('.fila-formset').forEach(f => {
+            if (f.classList.contains('d-none')) return;
+            const cant = parseFloat(f.querySelector('[name$="-cantidad_personas"]').value) || 0;
+            const precio = parseFloat(f.querySelector('[name$="-precio_por_persona"]').value) || 0;
+            const sub = cant * precio;
+            f.querySelector('.subtotal-costo').textContent = sub ? 'Subtotal ' + fmt(sub) : '';
+            total += sub;
+        });
+        document.getElementById('totalCostoPersonal').textContent = fmt(total);
+    }
+    cont.addEventListener('input', recalcular);
+    document.addEventListener('click', e => { if (e.target.closest('.btn-quitar, [data-agregar]')) setTimeout(recalcular, 0); });
+    recalcular();
+})();
+</script>
 {% endblock %}

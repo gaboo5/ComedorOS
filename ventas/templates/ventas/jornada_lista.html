@@ -1,0 +1,39 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h2 class="mb-0">Punto de venta</h2>
+    <div class="d-flex gap-2">
+        <a href="{% url 'pv_catalogo' %}" class="btn btn-outline-secondary"><i class="bi bi-journal-text me-1"></i>Catálogo</a>
+        <a href="{% url 'pv_jornada_crear' %}" class="btn btn-success"><i class="bi bi-plus-lg me-1"></i>Nueva jornada</a>
+    </div>
+</div>
+<p class="text-muted">Cada jornada es una salida de venta (gazebo, foodtruck, peña). Tiene su propia carta con precios del día, su caja y su cierre.</p>
+
+<div class="list-group">
+    {% for f in filas %}
+    {% with j=f.jornada %}
+    <div class="list-group-item d-flex flex-wrap gap-3 align-items-center">
+        <div class="flex-grow-1">
+            <div class="fw-semibold">
+                {{ j.nombre }}
+                {% if j.abierta %}<span class="badge bg-success ms-1">Abierta</span>{% else %}<span class="badge bg-secondary ms-1">Cerrada</span>{% endif %}
+            </div>
+            <div class="small text-muted">
+                {{ j.fecha|date:"l j \d\e F \d\e Y"|capfirst }} · {{ j.cantidad_tickets }} ticket{{ j.cantidad_tickets|pluralize }} · {{ f.total|moneda }}
+                {% if j.evento %} · <i class="bi bi-calendar-check"></i> en la Agenda{% endif %}
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            {% if j.abierta %}
+            <a href="{% url 'pv_caja' j.pk %}" class="btn btn-primary btn-sm"><i class="bi bi-calculator me-1"></i>Caja</a>
+            {% endif %}
+            <a href="{% url 'pv_carta' j.pk %}" class="btn btn-outline-secondary btn-sm">Carta</a>
+            <a href="{% url 'pv_cierre' j.pk %}" class="btn btn-outline-secondary btn-sm">Cierre</a>
+        </div>
+    </div>
+    {% endwith %}
+    {% empty %}
+    <div class="list-group-item text-muted">Todavía no hay jornadas. Creá la primera con "Nueva jornada".</div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -25,7 +25,10 @@ SECRET_KEY = 'django-insecure-ikzu@(&+2k)&+$3)0^$nvp*r()9u2=&#c2mr_xd!d%$p8@p%q@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# '*' permite abrir el sistema desde otro celular o notebook conectado a la misma red
+# (ej. el hotspot del celular en un punto de venta). Al publicarlo en internet hay que
+# reemplazarlo por el dominio real.
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -38,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'eventos',
+    'ventas',
 ]
 
 MIDDLEWARE = [

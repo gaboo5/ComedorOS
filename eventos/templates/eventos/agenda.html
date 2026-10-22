@@ -1,42 +1,87 @@
 {% extends 'eventos/base.html' %}
 {% block content %}
-<h2>Agenda de Eventos</h2>
+<style>
+    .fecha-bloque { min-width: 3rem; }
+    .fecha-bloque .dia { font-size: 1.3rem; font-weight: 600; line-height: 1; }
+</style>
 
-<form method="get" class="mb-3 d-flex gap-2 flex-wrap">
-    <select name="periodo" class="form-select w-auto" onchange="this.form.submit()">
-        <option value="">Todos los períodos</option>
-        {% for p in periodos %}
-            <option value="{{ p.id }}" {% if periodo_seleccionado == p.id|stringformat:"s" %}selected{% endif %}>{{ p }}</option>
-        {% endfor %}
-    </select>
-    <select name="estado" class="form-select w-auto" onchange="this.form.submit()">
-        <option value="">Todos los estados</option>
-        {% for valor, etiqueta in estados_evento %}
-            <option value="{{ valor }}" {% if estado_seleccionado == valor %}selected{% endif %}>{{ etiqueta }}</option>
-        {% endfor %}
-    </select>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h2 class="mb-0">Agenda de Eventos</h2>
+    <a href="{% url 'evento_crear' %}" class="btn btn-success"><i class="bi bi-plus-lg me-1"></i>Nuevo evento</a>
+</div>
+
+<!-- Vista: próximos / anteriores / todos -->
+<div class="btn-group mb-3" role="group">
+    <a href="{% querystring vista='proximos' periodo=None %}" class="btn btn-sm {% if vista == 'proximos' %}btn-dark{% else %}btn-outline-dark{% endif %}">Próximos</a>
+    <a href="{% querystring vista='anteriores' periodo=None %}" class="btn btn-sm {% if vista == 'anteriores' %}btn-dark{% else %}btn-outline-dark{% endif %}">Anteriores</a>
+    <a href="{% querystring vista='todos' %}" class="btn btn-sm {% if vista == 'todos' %}btn-dark{% else %}btn-outline-dark{% endif %}">Todos</a>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+    <input type="hidden" name="vista" value="{{ vista }}">
+    <div class="col-12 col-md-4">
+        <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="search" name="q" value="{{ busqueda }}" class="form-control" placeholder="Buscar cliente, solicitante o servicio">
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <select name="periodo" class="form-select" onchange="this.form.vista.value = this.value ? 'todos' : 'proximos'; this.form.submit()">
+            <option value="">Todos los períodos</option>
+            {% for p in periodos %}
+                <option value="{{ p.id }}" {% if periodo_seleccionado == p.id|stringformat:"s" %}selected{% endif %}>{{ p }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-6 col-md-3">
+        <select name="estado" class="form-select" onchange="this.form.submit()">
+            <option value="">Todos los estados</option>
+            {% for valor, etiqueta in estados_evento %}
+                <option value="{{ valor }}" {% if estado_seleccionado == valor %}selected{% endif %}>{{ etiqueta }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-12 col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-primary flex-grow-1">Buscar</button>
+        {% if busqueda or periodo_seleccionado or estado_seleccionado %}
+        <a href="{% url 'agenda' %}" class="btn btn-outline-secondary" title="Limpiar filtros"><i class="bi bi-x-lg"></i></a>
+        {% endif %}
+    </div>
 </form>
 
-<a href="{% url 'evento_crear' %}" class="btn btn-success mb-3">+ Nuevo evento</a>
+<p class="small text-muted mb-2">
+    {{ total }} evento{{ total|pluralize }}
+    {% if vista == 'proximos' %}desde el 1 de {{ hoy|date:"F" }}{% elif vista == 'anteriores' %}anteriores a {{ hoy|date:"F" }}, del más reciente al más antiguo{% endif %}
+    {% if busqueda %} · búsqueda: “{{ busqueda }}”{% endif %}
+</p>
 
 {% for grupo in grupos %}
-<h5 class="mt-4 text-uppercase text-muted">{{ grupo.etiqueta }}</h5>
-<div class="table-responsive">
-<table class="table table-sm table-striped align-middle">
+<h5 class="mt-4 text-uppercase text-muted">
+    {{ grupo.etiqueta }}
+    <span class="badge rounded-pill bg-light text-muted border fw-normal align-middle">{{ grupo.eventos|length }}</span>
+</h5>
+
+<!-- PC: tabla -->
+<div class="table-responsive d-none d-md-block">
+<table class="table table-sm table-hover align-middle bg-white">
     <thead>
         <tr>
-            <th>Fecha</th><th>Servicio</th><th>Cliente</th><th>Estado</th><th>Facturación</th><th>Acciones</th>
+            <th>Fecha</th><th>Servicio</th><th>Cliente</th><th class="text-end">Personas</th><th>Estado</th><th>Facturación</th><th></th>
         </tr>
     </thead>
     <tbody>
         {% for e in grupo.eventos %}
-        <tr>
-            <td>{{ e.fecha|date:"d/m" }}</td>
+        <tr class="{% if e.fecha == hoy %}table-primary{% endif %}">
+            <td class="text-nowrap">
+                {% if e.fecha == hoy %}<strong>Hoy</strong>{% else %}<span class="text-muted">{{ e.fecha|date:"D" }}</span>{% endif %}
+                {{ e.fecha|date:"d/m" }}
+            </td>
             <td>{{ e.tipo_servicio|default:"-" }}</td>
             <td>{{ e.cliente|default:"-" }}</td>
+            <td class="text-end">{{ e.cantidad_personas|default:"-" }}</td>
             <td><span class="badge bg-{{ e.color_estado_evento }}">{{ e.get_estado_evento_display }}</span></td>
             <td><span class="badge bg-{{ e.color_estado_facturacion }}">{{ e.get_estado_facturacion_display }}</span></td>
-            <td>
+            <td class="text-end">
                 <a href="{% url 'evento_editar' e.pk %}" class="btn btn-sm btn-outline-primary">Editar</a>
             </td>
         </tr>
@@ -44,7 +89,31 @@
     </tbody>
 </table>
 </div>
+
+<!-- Celular: tarjetas (se toca el evento para editarlo) -->
+<div class="list-group d-md-none">
+    {% for e in grupo.eventos %}
+    <a href="{% url 'evento_editar' e.pk %}" class="list-group-item list-group-item-action d-flex gap-3 align-items-center {% if e.fecha == hoy %}list-group-item-primary{% endif %}">
+        <div class="fecha-bloque text-center">
+            <div class="dia">{{ e.fecha|date:"d" }}</div>
+            <div class="small text-muted text-uppercase">{% if e.fecha == hoy %}hoy{% else %}{{ e.fecha|date:"D" }}{% endif %}</div>
+        </div>
+        <div class="flex-grow-1">
+            <div class="fw-semibold">{{ e.tipo_servicio|default:"Evento" }}</div>
+            <div class="small text-muted">{{ e.cliente|default:"Sin cliente" }}{% if e.cantidad_personas %} · {{ e.cantidad_personas }} pers.{% endif %}</div>
+            <div class="mt-1">
+                <span class="badge bg-{{ e.color_estado_evento }}">{{ e.get_estado_evento_display }}</span>
+                <span class="badge bg-{{ e.color_estado_facturacion }}">{{ e.get_estado_facturacion_display }}</span>
+            </div>
+        </div>
+        <i class="bi bi-chevron-right text-muted"></i>
+    </a>
+    {% endfor %}
+</div>
 {% empty %}
-<p class="text-muted">No hay eventos cargados para este filtro.</p>
+<div class="text-muted py-4">
+    No hay eventos para este filtro.
+    {% if vista == 'proximos' %}<a href="{% querystring vista='anteriores' %}">Ver anteriores</a>{% endif %}
+</div>
 {% endfor %}
 {% endblock %}

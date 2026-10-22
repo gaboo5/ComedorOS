@@ -10,23 +10,25 @@ from django import template
 register = template.Library()
 
 
-def formato_moneda_ar(valor):
+def formato_moneda_ar(valor, decimales=2):
     """Formatea un número al estilo argentino: punto para miles, coma para decimales."""
-    texto = f"{valor:,.2f}"
+    texto = f"{valor:,.{decimales}f}"
     return texto.replace(',', 'X').replace('.', ',').replace('X', '.')
 
 
 @register.filter
-def moneda(valor):
-    """{{ importe|moneda }} -> $1.234.567,89  (o '-' si no hay valor)."""
+def moneda(valor, decimales=2):
+    """{{ importe|moneda }} -> $1.234.567,89   ·   {{ importe|moneda:0 }} -> $1.234.568
+    Devuelve '-' si no hay valor."""
     if valor is None or valor == '':
         return '-'
     try:
         numero = Decimal(str(valor))
+        decimales = int(decimales)
     except (InvalidOperation, ValueError, TypeError):
         return valor
     signo = '-' if numero < 0 else ''
-    return f"{signo}${formato_moneda_ar(abs(numero))}"
+    return f"{signo}${formato_moneda_ar(abs(numero), decimales)}"
 
 
 # Prefijos de nombres de URL que corresponden a cada ítem del menú lateral.

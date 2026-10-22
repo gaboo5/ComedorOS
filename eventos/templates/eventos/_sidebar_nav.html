@@ -11,6 +11,10 @@
     <a class="nav-link {% nav_activo 'solicitud_' %}" href="{% url 'solicitud_lista' %}"><i class="bi bi-inbox me-2"></i>Solicitudes</a>
     <a class="nav-link {% nav_activo 'presupuesto_' %}" href="{% url 'presupuesto_lista' %}"><i class="bi bi-file-earmark-text me-2"></i>Presupuestos</a>
 
+    <div class="sidebar-heading">Punto de venta</div>
+    <a class="nav-link {% nav_activo 'pv_jornada' 'pv_carta' 'pv_caja' 'pv_ticket' 'pv_cierre' %}" href="{% url 'pv_jornada_lista' %}"><i class="bi bi-shop me-2"></i>Jornadas y caja</a>
+    <a class="nav-link {% nav_activo 'pv_catalogo' 'pv_producto' 'pv_promo' %}" href="{% url 'pv_catalogo' %}"><i class="bi bi-journal-text me-2"></i>Catálogo de venta</a>
+
     <div class="sidebar-heading">Finanzas</div>
     <a class="nav-link {% nav_activo 'dashboard' 'informe_' %}" href="{% url 'dashboard' %}"><i class="bi bi-speedometer2 me-2"></i>Indicadores</a>
     <a class="nav-link {% nav_activo 'rentabilidad' %}" href="{% url 'rentabilidad' %}"><i class="bi bi-graph-up me-2"></i>Ganancias</a>

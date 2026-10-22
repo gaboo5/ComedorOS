@@ -28,6 +28,13 @@ ComedorOS centraliza todo alrededor del **evento** como entidad principal: cada 
 - Compras con ítems por producto e historial de precios con variación porcentual.
 - Pagos a personal eventual y planillas.
 
+**Punto de venta** (gazebo, foodtruck, peñas)
+- Catálogo de comidas y bebidas con tamaños/opciones (ej. papas chico/mediano/grande) y promos.
+- Jornadas de venta con carta y precios del día; se puede copiar la carta de una jornada anterior.
+- Caja pensada para el celular: ticket rápido, cambio de precios en plena venta, promos creadas en el momento, pago en efectivo, QR o dividido.
+- Cierre con totales por medio de pago, por caja y por categoría, stock vendido y sobrante. El total se puede registrar en la Agenda.
+- Funciona sin internet: la notebook hace de servidor y los celulares se conectan por WiFi o hotspot.
+
 **Inventario**
 - Vajilla, mantelería, uniformes y demás elementos por categoría.
 - Envíos a lavandería y préstamos, con cálculo de disponibilidad (total − en lavandería − prestado).
@@ -58,6 +65,7 @@ comedoros/
 │   ├── templates/eventos/   # Interfaz (Bootstrap)
 │   ├── static/eventos/      # Logos e imágenes
 │   └── management/commands/ # Scripts de importación y limpieza de datos
+├── ventas/                  # Punto de venta: catálogo, jornadas, caja y cierre
 └── manage.py
 ```
 
@@ -85,6 +93,16 @@ python manage.py cargar_funciones_iniciales
 ```
 
 Los comandos `importar_informe2026`, `importar_facturacion` e `importar_inventario` cargan datos desde las planillas Excel del área. Los archivos no se incluyen en el repositorio porque contienen datos internos.
+
+### Usar el punto de venta sin internet
+
+1. Activá el **hotspot del celular** (no hace falta tener datos) y conectá la notebook a esa red.
+2. En la notebook, iniciá el sistema aceptando conexiones de la red:
+   ```bash
+   python manage.py runserver 0.0.0.0:8000
+   ```
+   La primera vez Windows pregunta por el firewall: permitilo en **redes privadas**.
+3. Abrí la caja en la notebook y tocá el botón con el nombre de la caja: muestra un código QR y la dirección (ej. `http://192.168.43.20:8000/...`) para abrirla desde otro celular conectado a la misma red.
 
 ## Próximos pasos
 

@@ -1,0 +1,41 @@
+<script>
+// Agregar / quitar filas de un formset de Django.
+// Uso: el contenedor tiene data-formset="prefijo"; el <template id="tpl-prefijo"> trae la fila vacía.
+document.querySelectorAll('[data-formset]').forEach(function (contenedor) {
+    const prefijo = contenedor.dataset.formset;
+    const total = document.querySelector('input[name="' + prefijo + '-TOTAL_FORMS"]');
+    const tpl = document.getElementById('tpl-' + prefijo).innerHTML;
+
+    function conectar(fila) {
+        const btn = fila.querySelector('.btn-quitar');
+        if (!btn) return;
+        btn.addEventListener('click', function () {
+            const borrar = fila.querySelector('input[name$="-DELETE"]');
+            const tieneId = fila.querySelector('input[name$="-id"]');
+            if (tieneId && tieneId.value) {           // fila ya guardada: se marca para borrar
+                if (borrar) borrar.checked = true;
+                fila.classList.add('d-none');
+            } else {                                   // fila nueva: se vacía y oculta
+                fila.querySelectorAll('input:not([type=hidden]), select').forEach(el => {
+                    if (el.type === 'checkbox') el.checked = false; else el.value = '';
+                });
+                if (borrar) borrar.checked = true;
+                fila.classList.add('d-none');
+            }
+        });
+    }
+
+    contenedor.querySelectorAll('.fila-formset').forEach(conectar);
+    document.querySelector('[data-agregar="' + prefijo + '"]').addEventListener('click', function () {
+        const n = parseInt(total.value, 10);
+        const div = document.createElement('div');
+        div.innerHTML = tpl.replace(/__prefix__/g, n).trim();
+        const fila = div.firstElementChild;
+        contenedor.appendChild(fila);
+        total.value = n + 1;
+        conectar(fila);
+        const primero = fila.querySelector('input:not([type=hidden]), select');
+        if (primero) primero.focus();
+    });
+});
+</script>

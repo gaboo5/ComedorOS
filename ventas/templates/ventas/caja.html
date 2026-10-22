@@ -1,0 +1,582 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<style>
+    .btn-producto {
+        width: 100%; min-height: 86px; text-align: left; background: #fff;
+        border: 1px solid #dee2e6; border-radius: .6rem; padding: .55rem .7rem; position: relative;
+        transition: transform .05s, box-shadow .1s;
+    }
+    .btn-producto:active { transform: scale(.97); }
+    .btn-producto:hover { box-shadow: 0 .2rem .6rem rgba(0,0,0,.08); }
+    .btn-producto .nombre { font-weight: 600; line-height: 1.15; }
+    .btn-producto .opcion { font-size: .85rem; color: #6c757d; }
+    .btn-producto .precio { font-size: 1.05rem; font-weight: 600; color: #198754; }
+    .btn-producto .en-ticket { position: absolute; top: -.45rem; right: -.35rem; }
+    .btn-producto .stock { font-size: .72rem; }
+    .btn-producto.promo { border-color: #0d6efd55; background: #f4f8ff; }
+    .btn-producto.sin-stock { border-color: #dc354588; background: #fff5f5; }
+    .pills-categorias { position: sticky; top: 0; z-index: 4; background: #f4f5f7; overflow-x: auto; white-space: nowrap; }
+    .pills-categorias .btn { margin-right: .25rem; }
+    .panel-ticket { position: sticky; top: 1rem; }
+    .linea-ticket .cant { min-width: 1.8rem; text-align: center; font-weight: 600; }
+    .barra-movil { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1030; background: #212529; padding: .55rem .75rem; }
+    @media (max-width: 991.98px) { .main-content { padding-bottom: 5.5rem; } }
+    .total-grande { font-size: 2rem; font-weight: 700; }
+    #listaDirecciones .active code, #listaDirecciones .active .text-muted { color: #fff !important; }
+</style>
+
+<!-- Encabezado -->
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+    <div>
+        <h4 class="mb-0">{{ jornada.nombre }}</h4>
+        <div class="small text-muted">
+            <button type="button" class="btn btn-sm btn-dark py-0 px-2" data-bs-toggle="modal" data-bs-target="#modalOtraCaja" title="Cambiar nombre de esta caja / conectar otra">
+                <i class="bi bi-display me-1"></i><span id="nombreCaja">Caja 1</span>
+            </button>
+            · <span id="resumenVendido">{{ cantidad_tickets }} tickets · {{ totales.total|moneda:0 }}</span>
+            {% if not jornada.abierta %}<span class="badge bg-danger ms-1">Jornada cerrada</span>{% endif %}
+        </div>
+    </div>
+    <div class="d-flex flex-wrap gap-1">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalPrecios"><i class="bi bi-tag me-1"></i>Precios</button>
+        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalPromo"><i class="bi bi-stars me-1"></i>Promo</button>
+        <a href="{% url 'pv_tickets' jornada.pk %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-receipt me-1"></i>Tickets</a>
+        <a href="{% url 'pv_cierre' jornada.pk %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-clipboard-check me-1"></i>Cierre</a>
+    </div>
+</div>
+
+<div id="aviso" class="alert d-none py-2" role="alert"></div>
+
+<div class="row g-3">
+    <!-- Productos -->
+    <div class="col-lg-8">
+        <div class="pills-categorias py-2" id="pillsCategorias"></div>
+        <div id="gridProductos"></div>
+    </div>
+    <!-- Ticket (PC) -->
+    <div class="col-lg-4 d-none d-lg-block">
+        <div class="card panel-ticket">
+            <div class="card-header bg-white d-flex justify-content-between"><strong>Ticket actual</strong><span class="text-muted small" data-cantidad-items></span></div>
+            <div class="card-body p-0" data-ticket></div>
+        </div>
+    </div>
+</div>
+
+<!-- Barra inferior (celular) -->
+<div class="barra-movil d-lg-none d-flex gap-2">
+    <button type="button" class="btn btn-outline-light flex-grow-1 text-start" data-bs-toggle="offcanvas" data-bs-target="#ticketMovil">
+        <i class="bi bi-receipt me-1"></i>Ticket <span data-cantidad-items></span>
+        <span class="float-end fw-bold" data-total></span>
+    </button>
+    <button type="button" class="btn btn-success fw-semibold px-4" data-accion="cobrar">Cobrar</button>
+</div>
+
+{% endblock %}
+
+{% block fuera_del_contenido %}
+<div class="offcanvas offcanvas-bottom h-auto" tabindex="-1" id="ticketMovil" style="max-height: 85vh">
+    <div class="offcanvas-header py-2">
+        <h5 class="offcanvas-title">Ticket actual</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body p-0" data-ticket></div>
+</div>
+
+<!-- Modal: cobrar -->
+<div class="modal fade" id="modalCobrar" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Cobrar</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="text-center mb-3"><div class="text-muted small">Total</div><div class="total-grande" id="cobrarTotal"></div></div>
+                <div class="btn-group w-100 mb-3" role="group">
+                    <input type="radio" class="btn-check" name="medio" id="medioEfectivo" value="efectivo" checked>
+                    <label class="btn btn-outline-success" for="medioEfectivo"><i class="bi bi-cash me-1"></i>Efectivo</label>
+                    <input type="radio" class="btn-check" name="medio" id="medioQR" value="qr">
+                    <label class="btn btn-outline-primary" for="medioQR"><i class="bi bi-qr-code me-1"></i>QR</label>
+                    <input type="radio" class="btn-check" name="medio" id="medioDividido" value="dividido">
+                    <label class="btn btn-outline-dark" for="medioDividido"><i class="bi bi-pie-chart me-1"></i>Dividido</label>
+                </div>
+                <div id="bloqueEfectivo">
+                    <label class="form-label small mb-1" for="pagaCon">Paga con (opcional, para calcular el vuelto)</label>
+                    <div class="input-group"><span class="input-group-text">$</span><input type="text" inputmode="decimal" class="form-control" id="pagaCon"></div>
+                    <div class="mt-2 fs-5" id="vuelto"></div>
+                </div>
+                <div id="bloqueDividido" class="d-none">
+                    <label class="form-label small mb-1" for="montoEfectivo">¿Cuánto paga en efectivo?</label>
+                    <div class="input-group"><span class="input-group-text">$</span><input type="text" inputmode="decimal" class="form-control" id="montoEfectivo"></div>
+                    <div class="mt-2">Por QR: <strong id="montoQR"></strong></div>
+                </div>
+                <div id="errorCobro" class="alert alert-danger py-2 mt-3 d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Volver</button>
+                <button type="button" class="btn btn-success px-4" id="btnConfirmarCobro">Confirmar cobro</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: precio de una línea del ticket -->
+<div class="modal fade" id="modalLinea" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header"><h6 class="modal-title" id="lineaTitulo"></h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <label class="form-label small" for="lineaPrecio">Precio unitario solo para este ticket</label>
+                <div class="input-group"><span class="input-group-text">$</span><input type="text" inputmode="decimal" class="form-control" id="lineaPrecio"></div>
+                <div class="form-text">Para cambiarlo en todas las ventas siguientes usá "Precios".</div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-primary w-100" id="btnGuardarLinea">Aplicar</button></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: precios del día -->
+<div class="modal fade" id="modalPrecios" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Precios del día</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <p class="small text-muted">El cambio vale para los tickets que se cobren de acá en adelante. Los ya cobrados conservan su precio.</p>
+                <div id="listaPrecios"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: nueva promo -->
+<div class="modal fade" id="modalPromo" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Nueva promo</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-8"><label class="form-label small" for="promoNombre">Nombre</label><input type="text" class="form-control" id="promoNombre" placeholder="Ej: Hamburguesa + vaso"></div>
+                    <div class="col-4"><label class="form-label small" for="promoPrecio">Precio</label><input type="text" inputmode="decimal" class="form-control" id="promoPrecio"></div>
+                </div>
+                <div class="small fw-semibold mb-1">¿Qué incluye?</div>
+                {% for v in variantes_carta %}
+                <div class="d-flex align-items-center justify-content-between border-bottom py-1">
+                    <span class="small">{{ v.nombre }}</span>
+                    <input type="number" min="0" value="0" class="form-control form-control-sm promo-comp" data-variante="{{ v.id }}" style="width: 4.5rem">
+                </div>
+                {% endfor %}
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" id="promoCatalogo">
+                    <label class="form-check-label small" for="promoCatalogo">Guardarla también en el catálogo para otras jornadas</label>
+                </div>
+                <div id="errorPromo" class="alert alert-danger py-2 mt-3 d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnCrearPromo">Crear promo</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: esta caja / conectar otra -->
+<div class="modal fade" id="modalOtraCaja" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Cajas</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <label class="form-label small" for="inputNombreCaja">Nombre de esta caja (queda guardado en este dispositivo)</label>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" id="inputNombreCaja" maxlength="30">
+                    <button class="btn btn-primary" type="button" id="btnNombreCaja">Guardar</button>
+                </div>
+                <hr>
+                <div class="fw-semibold mb-1">Abrir otra caja desde otro celular</div>
+                {% if direcciones %}
+                <p class="small text-muted mb-2">El otro celular tiene que estar en la misma red que la notebook (ej. el hotspot). Elegí la dirección que diga <span class="badge bg-success">responde</span> y escaneá el código:</p>
+                <div class="list-group mb-3" id="listaDirecciones">
+                    {% for d in direcciones %}
+                    <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-2" data-direccion="{{ forloop.counter0 }}" data-ping="{{ d.url_ping }}">
+                        <span>
+                            <code>{{ d.ip }}</code>
+                            <span class="small text-muted d-block">{{ d.interfaz|default:"Adaptador sin nombre" }}{% if d.virtual %} · virtual, no suele servir{% endif %}</span>
+                        </span>
+                        <span class="badge bg-secondary estado">probando…</span>
+                    </button>
+                    {% endfor %}
+                </div>
+                {% for d in direcciones %}
+                <div class="text-center d-none qr-direccion" data-qr="{{ forloop.counter0 }}">
+                    {% if d.qr %}<div class="mb-2" style="max-width: 220px; margin: 0 auto">{{ d.qr|safe }}</div>{% endif %}
+                    <code class="fs-6">{{ d.url }}</code>
+                </div>
+                {% endfor %}
+                <div id="avisoRed" class="alert alert-warning small mt-3 mb-0 d-none">
+                    Ninguna dirección responde: el sistema solo acepta conexiones de esta notebook. Cortalo con Ctrl+C y volvé a iniciarlo con <code>python manage.py runserver 0.0.0.0:8000</code>.
+                </div>
+                <p class="small text-muted mt-3 mb-0">
+                    Si la dirección responde acá pero el celular no la abre, lo está bloqueando el <strong>firewall de Windows</strong>: poné la red del hotspot como <em>Privada</em> o permití <code>python.exe</code> también en redes públicas. Escribí la dirección con <code>http://</code> adelante.
+                </p>
+                {% else %}
+                <p class="small text-muted mb-0">No se detectó ninguna red. Conectá la notebook al hotspot o WiFi y recargá la página.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ carta|json_script:"datos-carta" }}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const JORNADA = {{ jornada.pk }};
+    const ABIERTA = {{ jornada.abierta|yesno:"true,false" }};
+    const URL_TICKET = "{% url 'pv_api_ticket' jornada.pk %}";
+    const URL_PRECIO = "{% url 'pv_api_precio' jornada.pk %}";
+    const URL_PROMO = "{% url 'pv_api_promo' jornada.pk %}";
+    const CSRF = "{{ csrf_token }}";
+    const CLAVE_TICKET = 'pv_ticket_' + JORNADA;
+
+    const categorias = JSON.parse(document.getElementById('datos-carta').textContent);
+    const items = {};                       // clave -> item de la carta
+    categorias.forEach(c => c.items.forEach(i => { items[i.clave] = i; }));
+
+    // ------------------------------------------------------------ almacenamiento local (seguro)
+    function leer(clave, porDefecto) {
+        try { const v = localStorage.getItem(clave); return v === null ? porDefecto : JSON.parse(v); }
+        catch (e) { return porDefecto; }
+    }
+    function guardar(clave, valor) { try { localStorage.setItem(clave, JSON.stringify(valor)); } catch (e) {} }
+
+    let nombreCaja = leer('pv_nombre_caja', 'Caja 1');
+    let ticket = leer(CLAVE_TICKET, []).filter(l => items[l.clave]);   // [{clave, cantidad, precio}]
+
+    // ------------------------------------------------------------ utilidades
+    const fmt = n => '$' + Math.round(n).toLocaleString('es-AR');
+    // Lee un monto escrito a mano: '4.200' = 4200 (punto de miles), '4200,50' = 4200.5
+    function monto(texto) {
+        let t = String(texto || '').trim().replace(/[$\s]/g, '');
+        if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
+        else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+        const n = parseFloat(t);
+        return isNaN(n) ? NaN : n;
+    }
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+    const totalTicket = () => ticket.reduce((s, l) => s + l.cantidad * l.precio, 0);
+    const cantidadItems = () => ticket.reduce((s, l) => s + l.cantidad, 0);
+
+    function avisar(texto, tipo) {
+        const a = document.getElementById('aviso');
+        a.className = 'alert py-2 alert-' + (tipo || 'success');
+        a.textContent = texto;
+        clearTimeout(avisar._t);
+        avisar._t = setTimeout(() => a.classList.add('d-none'), 4000);
+    }
+
+    // Unidades de cada variante que ya están en el ticket actual (sueltas + dentro de promos)
+    function usoEnTicket() {
+        const uso = {};
+        ticket.forEach(l => {
+            const it = items[l.clave];
+            if (it.tipo === 'variante') uso[it.id] = (uso[it.id] || 0) + l.cantidad;
+            else Object.entries(it.componentes || {}).forEach(([vid, c]) => { uso[vid] = (uso[vid] || 0) + c * l.cantidad; });
+        });
+        return uso;
+    }
+
+    // ------------------------------------------------------------ dibujar productos
+    function dibujarProductos() {
+        const uso = usoEnTicket();
+        const enTicket = {};
+        ticket.forEach(l => { enTicket[l.clave] = l.cantidad; });
+        let pills = '', grid = '';
+        categorias.forEach((c, idx) => {
+            pills += `<a href="#cat-${idx}" class="btn btn-sm btn-outline-dark">${esc(c.nombre)}</a>`;
+            grid += `<h6 class="text-uppercase text-muted mt-3 mb-2" id="cat-${idx}" style="scroll-margin-top: 3rem">${esc(c.nombre)}</h6><div class="row g-2">`;
+            c.items.forEach(i => {
+                let stockHtml = '', sinStock = false;
+                if (i.stock !== null && i.stock !== undefined) {
+                    const quedan = i.stock - (uso[i.id] || 0);
+                    sinStock = quedan <= 0;
+                    const color = quedan <= 0 ? 'text-danger fw-semibold' : (quedan <= 5 ? 'text-warning-emphasis fw-semibold' : 'text-muted');
+                    stockHtml = `<div class="stock ${color}">quedan ${quedan}</div>`;
+                }
+                const badge = enTicket[i.clave] ? `<span class="badge rounded-pill bg-primary en-ticket">${enTicket[i.clave]}</span>` : '';
+                grid += `<div class="col-6 col-md-4 col-xl-3">
+                    <button type="button" class="btn-producto ${i.tipo === 'promo' ? 'promo' : ''} ${sinStock ? 'sin-stock' : ''}" data-agregar="${i.clave}">
+                        ${badge}
+                        <div class="nombre">${esc(i.producto)}</div>
+                        ${i.opcion ? `<div class="opcion">${esc(i.opcion)}</div>` : ''}
+                        ${i.detalle ? `<div class="opcion small">${esc(i.detalle)}</div>` : ''}
+                        <div class="d-flex justify-content-between align-items-end mt-1">
+                            <span class="precio">${fmt(i.precio)}</span>${stockHtml}
+                        </div>
+                    </button></div>`;
+            });
+            grid += '</div>';
+        });
+        document.getElementById('pillsCategorias').innerHTML = pills;
+        document.getElementById('gridProductos').innerHTML = grid ||
+            '<p class="text-muted">La carta está vacía.</p>';
+    }
+
+    // ------------------------------------------------------------ dibujar ticket
+    function dibujarTicket() {
+        let html;
+        if (!ticket.length) {
+            html = '<div class="p-3 text-muted small">Tocá los productos para sumarlos al ticket.</div>';
+        } else {
+            html = '<ul class="list-group list-group-flush">';
+            ticket.forEach((l, idx) => {
+                const it = items[l.clave];
+                const cambiado = l.precio !== it.precio;
+                html += `<li class="list-group-item linea-ticket">
+                    <div class="d-flex justify-content-between">
+                        <span class="fw-semibold">${esc(it.nombre)}</span>
+                        <span class="fw-semibold">${fmt(l.cantidad * l.precio)}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-1">
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-secondary" data-menos="${idx}"><i class="bi bi-dash"></i></button>
+                            <span class="btn btn-light cant disabled">${l.cantidad}</span>
+                            <button type="button" class="btn btn-outline-secondary" data-mas="${idx}"><i class="bi bi-plus"></i></button>
+                        </div>
+                        <button type="button" class="btn btn-link btn-sm p-0 ${cambiado ? 'text-danger' : 'text-muted'}" data-precio-linea="${idx}">
+                            ${fmt(l.precio)} c/u <i class="bi bi-pencil"></i>
+                        </button>
+                    </div></li>`;
+            });
+            html += `</ul>
+                <div class="p-3 border-top">
+                    <div class="d-flex justify-content-between fs-4 fw-bold mb-2"><span>Total</span><span>${fmt(totalTicket())}</span></div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-danger" data-accion="descartar"><i class="bi bi-trash me-1"></i>Descartar</button>
+                        <button type="button" class="btn btn-success flex-grow-1 fw-semibold" data-accion="cobrar">Cobrar ${fmt(totalTicket())}</button>
+                    </div>
+                </div>`;
+        }
+        document.querySelectorAll('[data-ticket]').forEach(el => { el.innerHTML = html; });
+        document.querySelectorAll('[data-total]').forEach(el => { el.textContent = fmt(totalTicket()); });
+        document.querySelectorAll('[data-cantidad-items]').forEach(el => {
+            const n = cantidadItems(); el.textContent = n ? `(${n})` : '';
+        });
+        guardar(CLAVE_TICKET, ticket);
+    }
+
+    function redibujar() { dibujarProductos(); dibujarTicket(); }
+
+    // ------------------------------------------------------------ acciones del ticket
+    function agregar(clave) {
+        if (!ABIERTA) { avisar('La jornada está cerrada. Reabrila desde el Cierre para seguir vendiendo.', 'danger'); return; }
+        const l = ticket.find(x => x.clave === clave);
+        if (l) l.cantidad += 1; else ticket.push({clave: clave, cantidad: 1, precio: items[clave].precio});
+        if (navigator.vibrate) { try { navigator.vibrate(15); } catch (e) {} }
+        redibujar();
+    }
+
+    document.addEventListener('click', function (ev) {
+        const b = ev.target.closest('button, a');
+        if (!b) return;
+        if (b.dataset.agregar) agregar(b.dataset.agregar);
+        else if (b.dataset.mas !== undefined) { ticket[+b.dataset.mas].cantidad += 1; redibujar(); }
+        else if (b.dataset.menos !== undefined) {
+            const l = ticket[+b.dataset.menos]; l.cantidad -= 1;
+            if (l.cantidad <= 0) ticket.splice(+b.dataset.menos, 1);
+            redibujar();
+        }
+        else if (b.dataset.precioLinea !== undefined) abrirLinea(+b.dataset.precioLinea);
+        else if (b.dataset.accion === 'descartar') {
+            ticket = []; redibujar(); avisar('Ticket descartado.', 'secondary');
+        }
+        else if (b.dataset.accion === 'cobrar') abrirCobro();
+    });
+
+    // ------------------------------------------------------------ precio de una línea
+    let lineaEditando = null;
+    const modalLinea = new bootstrap.Modal('#modalLinea');
+    function abrirLinea(idx) {
+        lineaEditando = idx;
+        document.getElementById('lineaTitulo').textContent = items[ticket[idx].clave].nombre;
+        document.getElementById('lineaPrecio').value = ticket[idx].precio;
+        modalLinea.show();
+    }
+    document.getElementById('btnGuardarLinea').addEventListener('click', function () {
+        const p = monto(document.getElementById('lineaPrecio').value);
+        if (!isNaN(p) && p >= 0 && lineaEditando !== null) { ticket[lineaEditando].precio = p; redibujar(); }
+        modalLinea.hide();
+    });
+
+    // ------------------------------------------------------------ cobrar
+    const modalCobrar = new bootstrap.Modal('#modalCobrar');
+    const medio = () => document.querySelector('input[name=medio]:checked').value;
+    function actualizarCobro() {
+        const total = totalTicket();
+        document.getElementById('bloqueEfectivo').classList.toggle('d-none', medio() !== 'efectivo');
+        document.getElementById('bloqueDividido').classList.toggle('d-none', medio() !== 'dividido');
+        const pagaCon = monto(document.getElementById('pagaCon').value);
+        const v = document.getElementById('vuelto');
+        if (!isNaN(pagaCon) && pagaCon > 0) {
+            v.innerHTML = pagaCon >= total ? `Vuelto: <strong>${fmt(pagaCon - total)}</strong>`
+                                           : `<span class="text-danger">Faltan ${fmt(total - pagaCon)}</span>`;
+        } else v.innerHTML = '';
+        const ef = monto(document.getElementById('montoEfectivo').value) || 0;
+        document.getElementById('montoQR').textContent = fmt(Math.max(total - ef, 0));
+    }
+    document.querySelectorAll('input[name=medio], #pagaCon, #montoEfectivo').forEach(el => el.addEventListener('input', actualizarCobro));
+    document.querySelectorAll('input[name=medio]').forEach(el => el.addEventListener('change', actualizarCobro));
+
+    function abrirCobro() {
+        if (!ticket.length) { avisar('El ticket está vacío.', 'warning'); return; }
+        bootstrap.Offcanvas.getInstance('#ticketMovil')?.hide();
+        document.getElementById('cobrarTotal').textContent = fmt(totalTicket());
+        document.getElementById('medioEfectivo').checked = true;
+        document.getElementById('pagaCon').value = '';
+        document.getElementById('montoEfectivo').value = '';
+        document.getElementById('errorCobro').classList.add('d-none');
+        actualizarCobro();
+        modalCobrar.show();
+    }
+
+    async function enviar(url, datos) {
+        const r = await fetch(url, {
+            method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+            body: JSON.stringify(datos),
+        });
+        let json = {};
+        try { json = await r.json(); } catch (e) {}
+        if (!r.ok || !json.ok) throw new Error(json.error || ('Error ' + r.status));
+        return json;
+    }
+
+    document.getElementById('btnConfirmarCobro').addEventListener('click', async function () {
+        const btn = this, total = totalTicket();
+        let efectivo = total, qr = 0;
+        if (medio() === 'qr') { efectivo = 0; qr = total; }
+        if (medio() === 'dividido') {
+            efectivo = Math.min(monto(document.getElementById('montoEfectivo').value) || 0, total);
+            qr = total - efectivo;
+        }
+        btn.disabled = true;
+        try {
+            const res = await enviar(URL_TICKET, {
+                caja: nombreCaja, efectivo: efectivo, qr: qr,
+                lineas: ticket.map(l => ({tipo: items[l.clave].tipo, id: items[l.clave].id, cantidad: l.cantidad, precio: l.precio})),
+            });
+            Object.values(items).forEach(i => {
+                if (i.tipo === 'variante' && res.stock[i.id] !== undefined) i.stock = res.stock[i.id];
+            });
+            ticket = [];
+            modalCobrar.hide();
+            redibujar();
+            document.getElementById('resumenVendido').textContent =
+                `${res.cantidad_tickets} tickets · ${fmt(res.totales.total)}`;
+            avisar(`Ticket #${res.numero} guardado ✓`);
+        } catch (e) {
+            const err = document.getElementById('errorCobro');
+            err.textContent = (e instanceof TypeError)
+                ? 'No hay conexión con la notebook. El ticket sigue cargado: revisá la red y volvé a intentar.'
+                : e.message;
+            err.classList.remove('d-none');
+        } finally { btn.disabled = false; }
+    });
+
+    // ------------------------------------------------------------ precios del día
+    function dibujarPrecios() {
+        let html = '';
+        categorias.forEach(c => {
+            html += `<div class="small text-uppercase text-muted mt-2">${esc(c.nombre)}</div>`;
+            c.items.forEach(i => {
+                html += `<div class="d-flex align-items-center gap-2 border-bottom py-1">
+                    <span class="flex-grow-1 small">${esc(i.nombre)}</span>
+                    <input type="text" inputmode="decimal" class="form-control form-control-sm" style="width: 6.5rem" value="${i.precio}" data-precio-de="${i.clave}">
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-guardar-precio="${i.clave}">OK</button></div>`;
+            });
+        });
+        document.getElementById('listaPrecios').innerHTML = html;
+    }
+    document.getElementById('modalPrecios').addEventListener('show.bs.modal', dibujarPrecios);
+    document.getElementById('listaPrecios').addEventListener('click', async function (ev) {
+        const b = ev.target.closest('[data-guardar-precio]');
+        if (!b) return;
+        const it = items[b.dataset.guardarPrecio];
+        const input = document.querySelector(`[data-precio-de="${it.clave}"]`);
+        const nuevo = monto(input.value);
+        if (isNaN(nuevo) || nuevo < 0) return;
+        b.disabled = true;
+        try {
+            await enviar(URL_PRECIO, {tipo: it.tipo, id: it.id, precio: nuevo});
+            // Las líneas del ticket actual que tenían el precio anterior pasan al nuevo.
+            ticket.forEach(l => { if (l.clave === it.clave && l.precio === it.precio) l.precio = nuevo; });
+            it.precio = nuevo;
+            b.className = 'btn btn-sm btn-success'; b.innerHTML = '<i class="bi bi-check-lg"></i>';
+            redibujar();
+        } catch (e) { avisar('No se pudo cambiar el precio: ' + e.message, 'danger'); }
+        finally { b.disabled = false; }
+    });
+
+    // ------------------------------------------------------------ nueva promo
+    document.getElementById('btnCrearPromo').addEventListener('click', async function () {
+        const componentes = {};
+        document.querySelectorAll('.promo-comp').forEach(inp => {
+            const n = parseInt(inp.value, 10); if (n > 0) componentes[inp.dataset.variante] = n;
+        });
+        this.disabled = true;
+        try {
+            await enviar(URL_PROMO, {
+                nombre: document.getElementById('promoNombre').value,
+                precio: document.getElementById('promoPrecio').value,
+                componentes: componentes,
+                guardar_catalogo: document.getElementById('promoCatalogo').checked,
+            });
+            location.reload();   // el ticket en curso queda guardado en el dispositivo
+        } catch (e) {
+            const err = document.getElementById('errorPromo');
+            err.textContent = e.message; err.classList.remove('d-none');
+            this.disabled = false;
+        }
+    });
+
+    // ------------------------------------------------------------ nombre de la caja
+    function mostrarCaja() {
+        document.getElementById('nombreCaja').textContent = nombreCaja;
+        document.getElementById('inputNombreCaja').value = nombreCaja;
+    }
+    document.getElementById('btnNombreCaja').addEventListener('click', function () {
+        const n = document.getElementById('inputNombreCaja').value.trim();
+        if (n) { nombreCaja = n.slice(0, 30); guardar('pv_nombre_caja', nombreCaja); mostrarCaja(); }
+        bootstrap.Modal.getInstance('#modalOtraCaja').hide();
+    });
+
+    // ------------------------------------------------------------ direcciones para conectar otra caja
+    function elegirDireccion(idx) {
+        document.querySelectorAll('[data-direccion]').forEach(b => b.classList.toggle('active', b.dataset.direccion === String(idx)));
+        document.querySelectorAll('.qr-direccion').forEach(q => q.classList.toggle('d-none', q.dataset.qr !== String(idx)));
+    }
+    document.querySelectorAll('[data-direccion]').forEach(b => b.addEventListener('click', () => elegirDireccion(b.dataset.direccion)));
+    let probadas = false;
+    document.getElementById('modalOtraCaja').addEventListener('show.bs.modal', async function () {
+        const botones = [...document.querySelectorAll('[data-direccion]')];
+        if (!botones.length || probadas) return;
+        probadas = true;
+        elegirDireccion(0);
+        const resultados = await Promise.all(botones.map(async b => {
+            const estado = b.querySelector('.estado');
+            try {
+                const r = await fetch(b.dataset.ping, {cache: 'no-store', signal: AbortSignal.timeout(3000)});
+                if (!r.ok) throw new Error();
+                estado.className = 'badge bg-success estado'; estado.textContent = 'responde';
+                return true;
+            } catch (e) {
+                estado.className = 'badge bg-danger estado'; estado.textContent = 'no responde';
+                return false;
+            }
+        }));
+        const primera = resultados.indexOf(true);
+        if (primera >= 0) elegirDireccion(primera);
+        else document.getElementById('avisoRed').classList.remove('d-none');
+    });
+
+    mostrarCaja();
+    redibujar();
+})();
+</script>
+{% endblock %}

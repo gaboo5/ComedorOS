@@ -1,12 +1,14 @@
+from datetime import timedelta
 from io import BytesIO
 from itertools import groupby
 
 import pandas as pd
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches, Pt
@@ -22,9 +24,11 @@ from .forms import (
     IntegranteForm,
     ItemCompraFormSet,
     ItemCostoPersonalFormSet,
+    ItemCostoPersonalFormSetEdicion,
     ItemEnvioLavanderiaFormSet,
     ItemPrestamoFormSet,
     OpcionMenuFormSet,
+    OpcionMenuFormSetEdicion,
     PagoForm,
     PersonaEventualForm,
     PrestamoForm,
@@ -39,7 +43,6 @@ from .management.commands.importar_informe2026 import (
     normalizar,
     obtener_o_crear_tipo_servicio,
 )
-from .templatetags.formatos import formato_moneda_ar
 from .models import (
     CategoriaInventario,
     Compra,
@@ -60,6 +63,7 @@ from .models import (
     Producto,
     ResumenFacturacionMensual,
 )
+from .templatetags.formatos import formato_moneda_ar
 
 # ======================================================================
 # HELPERS GENERALES
@@ -95,16 +99,36 @@ def nombre_para_evento(evento, por_defecto):
 
 
 def agenda(request):
-    periodo_id = request.GET.get('periodo')
-    estado_id = request.GET.get('estado')
+    """Agenda agrupada por mes.
 
-    periodos = Periodo.objects.all()
-    eventos = Evento.objects.select_related('tipo_servicio', 'periodo').order_by('fecha')
+    Por defecto muestra desde el mes actual en adelante ("próximos"). Si se elige un período
+    se muestra el período completo. También se puede buscar por cliente, solicitante o servicio.
+    """
+    hoy = timezone.localdate()
+    inicio_mes = hoy.replace(day=1)
 
+    periodo_id = request.GET.get('periodo', '')
+    estado_id = request.GET.get('estado', '')
+    busqueda = request.GET.get('q', '').strip()
+    vista = request.GET.get('vista') or ('todos' if periodo_id else 'proximos')
+
+    eventos = Evento.objects.select_related('tipo_servicio', 'periodo')
     if periodo_id:
         eventos = eventos.filter(periodo_id=periodo_id)
     if estado_id:
         eventos = eventos.filter(estado_evento=estado_id)
+    if busqueda:
+        eventos = eventos.filter(
+            Q(cliente__icontains=busqueda) | Q(solicitante__icontains=busqueda)
+            | Q(tipo_servicio__nombre__icontains=busqueda) | Q(nombre__icontains=busqueda)
+        )
+
+    if vista == 'proximos':
+        eventos = eventos.filter(fecha__gte=inicio_mes).order_by('fecha')
+    elif vista == 'anteriores':
+        eventos = eventos.filter(fecha__lt=inicio_mes).order_by('-fecha')
+    else:
+        eventos = eventos.order_by('fecha')
 
     grupos = []
     for (anio, mes), eventos_del_mes in groupby(eventos, key=lambda e: (e.fecha.year, e.fecha.month)):
@@ -115,13 +139,16 @@ def agenda(request):
 
     context = {
         'grupos': grupos,
-        'periodos': periodos,
+        'total': sum(len(g['eventos']) for g in grupos),
+        'hoy': hoy,
+        'vista': vista,
+        'busqueda': busqueda,
+        'periodos': Periodo.objects.all(),
         'periodo_seleccionado': periodo_id,
         'estado_seleccionado': estado_id,
         'estados_evento': Evento.ESTADO_EVENTO,
     }
     return render(request, 'eventos/agenda.html', context)
-
 
 def dashboard(request):
     periodo_id = request.GET.get('periodo')
@@ -205,11 +232,15 @@ def presupuesto_form(request, pk=None):
         evento_id = request.POST.get('evento_id') or request.GET.get('evento_id')
         evento = get_object_or_404(Evento, pk=evento_id) if evento_id else Evento()
 
+    # Presupuesto nuevo: 3 filas vacías de cada cosa. Edición: solo lo cargado (se agregan con "+ Agregar").
+    OpcionesFS = OpcionMenuFormSetEdicion if pk else OpcionMenuFormSet
+    CostosFS = ItemCostoPersonalFormSetEdicion if pk else ItemCostoPersonalFormSet
+
     if request.method == 'POST':
         evento_form = EventoPresupuestoForm(request.POST, instance=evento)
         presupuesto_form_obj = PresupuestoForm(request.POST, instance=presupuesto)
-        formset = OpcionMenuFormSet(request.POST, instance=presupuesto)
-        formset_costo_personal = ItemCostoPersonalFormSet(request.POST, instance=presupuesto, prefix='costopersonal')
+        formset = OpcionesFS(request.POST, instance=presupuesto)
+        formset_costo_personal = CostosFS(request.POST, instance=presupuesto, prefix='costopersonal')
 
         if evento_form.is_valid() and presupuesto_form_obj.is_valid() and formset.is_valid() and formset_costo_personal.is_valid():
             with transaction.atomic():
@@ -235,8 +266,8 @@ def presupuesto_form(request, pk=None):
     else:
         evento_form = EventoPresupuestoForm(instance=evento)
         presupuesto_form_obj = PresupuestoForm(instance=presupuesto)
-        formset = OpcionMenuFormSet(instance=presupuesto)
-        formset_costo_personal = ItemCostoPersonalFormSet(instance=presupuesto, prefix='costopersonal')
+        formset = OpcionesFS(instance=presupuesto)
+        formset_costo_personal = CostosFS(instance=presupuesto, prefix='costopersonal')
 
     return render(request, 'eventos/presupuesto_form.html', {
         'evento_form': evento_form,
@@ -978,7 +1009,61 @@ def facturacion_mensual(request):
 # ======================================================================
 
 def inicio(request):
-    return render(request, 'eventos/inicio.html')
+    """Pantalla de inicio: lo que hay que mirar al empezar el día."""
+    hoy = timezone.localdate()
+    en_7_dias = hoy + timedelta(days=7)
+    activos = Evento.objects.select_related('tipo_servicio').exclude(estado_evento='cancelado')
+
+    proximos = list(activos.filter(fecha__gte=hoy, fecha__lte=en_7_dias).order_by('fecha'))
+    siguiente = None
+    if not proximos:
+        siguiente = activos.filter(fecha__gt=en_7_dias).order_by('fecha').first()
+
+    solicitudes = activos.filter(estado_evento='solicitud').order_by('fecha')
+    sin_confirmar = activos.filter(estado_evento='presupuestado').select_related('presupuesto').order_by('fecha')
+
+    # Facturación del semestre actual (solo eventos ya realizados).
+    realizados = Evento.objects.filter(
+        periodo=periodo_para_fecha(hoy), estado_evento='realizado', excluir_de_informe=False,
+    )
+    por_facturar = realizados.filter(estado_facturacion='pendiente')
+    por_cobrar = realizados.filter(estado_facturacion='facturado')
+
+    lavanderia_afuera = EnvioLavanderia.objects.filter(fecha_retorno__isnull=True).prefetch_related('items')
+    prestamos_afuera = Prestamo.objects.filter(fecha_devolucion__isnull=True).prefetch_related('items')
+    afuera = [
+        {'tipo': 'Lavandería', 'detalle': e.proveedor or 'Sin proveedor', 'fecha': e.fecha_envio,
+         'unidades': sum(i.cantidad for i in e.items.all()), 'dias': (hoy - e.fecha_envio).days,
+         'url': 'lavanderia_editar', 'pk': e.pk}
+        for e in lavanderia_afuera
+    ] + [
+        {'tipo': 'Préstamo', 'detalle': p.prestado_a, 'fecha': p.fecha_prestamo,
+         'unidades': sum(i.cantidad for i in p.items.all()), 'dias': (hoy - p.fecha_prestamo).days,
+         'url': 'prestamo_editar', 'pk': p.pk}
+        for p in prestamos_afuera
+    ]
+    afuera.sort(key=lambda x: x['fecha'])
+
+    from ventas.models import Jornada  # import local: la app de ventas depende de eventos, no al revés
+    jornadas_abiertas = Jornada.objects.filter(estado='abierta', fecha__gte=hoy - timedelta(days=3))
+
+    return render(request, 'eventos/inicio.html', {
+        'hoy': hoy,
+        'jornadas_abiertas': jornadas_abiertas,
+        'proximos': proximos,
+        'personas_proximos': sum(e.cantidad_personas or 0 for e in proximos),
+        'siguiente': siguiente,
+        'solicitudes': solicitudes[:5],
+        'total_solicitudes': solicitudes.count(),
+        'sin_confirmar': sin_confirmar[:5],
+        'total_sin_confirmar': sin_confirmar.count(),
+        'por_facturar_cantidad': por_facturar.count(),
+        'por_facturar_monto': por_facturar.aggregate(t=Sum('precio_facturado'))['t'] or 0,
+        'por_cobrar_cantidad': por_cobrar.count(),
+        'por_cobrar_monto': por_cobrar.aggregate(t=Sum('precio_facturado'))['t'] or 0,
+        'afuera': afuera,
+        'unidades_afuera': sum(x['unidades'] for x in afuera),
+    })
 
 
 # ======================================================================
@@ -1143,6 +1228,17 @@ def persona_eventual_form(request, pk=None):
     return render(request, 'eventos/persona_eventual_form.html', {'form': form, 'editando': pk is not None})
 
 
+def persona_eventual_eliminar(request, pk):
+    """Solo se puede borrar si no tiene pagos: los pagos son registros contables y no se pierden."""
+    persona = get_object_or_404(PersonaEventual, pk=pk)
+    pagos = persona.pagos.select_related('evento').order_by('-fecha')
+    if request.method == 'POST' and not pagos.exists():
+        persona.delete()
+        messages.success(request, f'Se eliminó a {persona.apellido}, {persona.nombre}.')
+        return redirect('persona_eventual_lista')
+    return render(request, 'eventos/persona_eventual_confirmar_eliminar.html', {'persona': persona, 'pagos': pagos})
+
+
 def pago_lista(request, tipo=None):
     pagos = Pago.objects.select_related('persona', 'evento')
     if tipo:
@@ -1225,6 +1321,17 @@ def lavanderia_form(request, pk=None):
     })
 
 
+def lavanderia_eliminar(request, pk):
+    envio = get_object_or_404(EnvioLavanderia.objects.prefetch_related('items__elemento'), pk=pk)
+    if request.method == 'POST':
+        if envio.factura:
+            envio.factura.delete(save=False)   # borra también el archivo de la factura
+        envio.delete()
+        messages.success(request, 'Envío a lavandería eliminado.')
+        return redirect('lavanderia_lista')
+    return render(request, 'eventos/lavanderia_confirmar_eliminar.html', {'envio': envio})
+
+
 def prestamo_lista(request):
     prestamos = Prestamo.objects.prefetch_related('items__elemento').all()
     return render(request, 'eventos/prestamo_lista.html', {'prestamos': prestamos})
@@ -1247,3 +1354,12 @@ def prestamo_form(request, pk=None):
     return render(request, 'eventos/prestamo_form.html', {
         'form': form, 'formset': formset, 'editando': pk is not None,
     })
+
+
+def prestamo_eliminar(request, pk):
+    prestamo = get_object_or_404(Prestamo.objects.prefetch_related('items__elemento'), pk=pk)
+    if request.method == 'POST':
+        prestamo.delete()
+        messages.success(request, 'Préstamo eliminado.')
+        return redirect('prestamo_lista')
+    return render(request, 'eventos/prestamo_confirmar_eliminar.html', {'prestamo': prestamo})

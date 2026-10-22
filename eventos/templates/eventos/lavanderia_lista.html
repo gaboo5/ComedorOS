@@ -4,19 +4,22 @@
 <a href="{% url 'lavanderia_crear' %}" class="btn btn-success mb-3">+ Nuevo envío</a>
 <div class="table-responsive">
 <table class="table table-striped">
-    <thead><tr><th>Elemento</th><th>Cantidad</th><th>Enviado</th><th>Retorno</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <thead><tr><th>Enviado</th><th>Elementos</th><th>Lavandería</th><th>Retorno</th><th>Estado</th><th>Acciones</th></tr></thead>
     <tbody>
         {% for env in envios %}
         <tr>
-            <td>{{ env.elemento }}</td>
-            <td>{{ env.cantidad }}</td>
-            <td>{{ env.fecha_envio }}</td>
-            <td>{{ env.fecha_retorno|default:"-" }}</td>
+            <td class="text-nowrap">{{ env.fecha_envio|date:"d/m/Y" }}</td>
+            <td class="small">{% for i in env.items.all %}{{ i.cantidad }} × {{ i.elemento.nombre }}{% if not forloop.last %}<br>{% endif %}{% empty %}-{% endfor %}</td>
+            <td>{{ env.proveedor|default:"-" }}{% if env.factura %} <a href="{{ env.factura.url }}" target="_blank" title="Ver factura"><i class="bi bi-paperclip"></i></a>{% endif %}</td>
+            <td class="text-nowrap">{{ env.fecha_retorno|date:"d/m/Y"|default:"-" }}</td>
             <td>
                 {% if env.esta_pendiente %}<span class="badge bg-warning text-dark">Pendiente</span>
                 {% else %}<span class="badge bg-success">Devuelto</span>{% endif %}
             </td>
-            <td><a href="{% url 'lavanderia_editar' env.pk %}" class="btn btn-sm btn-outline-primary">Editar</a></td>
+            <td class="text-nowrap">
+                <a href="{% url 'lavanderia_editar' env.pk %}" class="btn btn-sm btn-outline-primary">Editar</a>
+                <a href="{% url 'lavanderia_eliminar' env.pk %}" class="btn btn-sm btn-outline-danger">Eliminar</a>
+            </td>
         </tr>
         {% empty %}
         <tr><td colspan="6" class="text-center text-muted">No hay envíos cargados</td></tr>

@@ -1,0 +1,36 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>Eliminar persona eventual</h2>
+{% if pagos %}
+<div class="alert alert-warning">
+    <strong>{{ persona.apellido }}, {{ persona.nombre }}</strong> no se puede eliminar porque tiene
+    {{ pagos|length }} pago{{ pagos|length|pluralize }} registrado{{ pagos|length|pluralize }}.
+    Los pagos son parte de la contabilidad y no se borran junto con la persona.
+</div>
+<p class="small text-muted">Si la persona se cargó por error, primero eliminá o corregí estos pagos (asignándolos a la persona correcta) y después volvé acá.</p>
+<div class="table-responsive">
+<table class="table table-sm table-striped bg-white">
+    <thead><tr><th>Fecha</th><th>Tipo</th><th>Evento</th><th class="text-end">Importe</th><th></th></tr></thead>
+    <tbody>
+        {% for p in pagos %}
+        <tr>
+            <td>{{ p.fecha|date:"d/m/Y" }}</td>
+            <td>{{ p.get_tipo_pago_display }}</td>
+            <td>{{ p.evento|default:p.descripcion_evento|default:"-" }}</td>
+            <td class="text-end">{{ p.importe|moneda }}</td>
+            <td class="text-end"><a href="{% url 'pago_editar' p.pk %}" class="btn btn-sm btn-outline-primary">Editar</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+<a href="{% url 'persona_eventual_lista' %}" class="btn btn-secondary">Volver</a>
+{% else %}
+<p>¿Seguro que querés eliminar a <strong>{{ persona.apellido }}, {{ persona.nombre }}</strong> (DNI {{ persona.dni }})?</p>
+<form method="post" class="d-flex gap-2">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+    <a href="{% url 'persona_eventual_lista' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endif %}
+{% endblock %}

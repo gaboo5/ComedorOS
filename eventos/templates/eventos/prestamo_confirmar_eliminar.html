@@ -1,0 +1,14 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<h2>Eliminar préstamo</h2>
+<p>¿Seguro que querés eliminar el préstamo a <strong>{{ prestamo.prestado_a }}</strong> del {{ prestamo.fecha_prestamo|date:"d/m/Y" }}?</p>
+<ul>
+    {% for i in prestamo.items.all %}<li>{{ i.cantidad }} × {{ i.elemento.nombre }}</li>{% empty %}<li class="text-muted">Sin elementos</li>{% endfor %}
+</ul>
+{% if prestamo.esta_pendiente %}<p class="small text-muted">Estos elementos vuelven a contar como disponibles en el inventario.</p>{% endif %}
+<form method="post" class="d-flex gap-2">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+    <a href="{% url 'prestamo_lista' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

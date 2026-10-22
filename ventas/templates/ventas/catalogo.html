@@ -1,0 +1,58 @@
+{% extends 'eventos/base.html' %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h2 class="mb-0">Catálogo de venta</h2>
+    <div class="d-flex gap-2">
+        <a href="{% url 'pv_promo_crear' %}" class="btn btn-outline-primary"><i class="bi bi-stars me-1"></i>Nueva promo</a>
+        <a href="{% url 'pv_producto_crear' %}" class="btn btn-success"><i class="bi bi-plus-lg me-1"></i>Nuevo producto</a>
+    </div>
+</div>
+<p class="text-muted">Todo lo que alguna vez se vendió. El precio es el último que se usó: cuando cambiás un precio en una jornada, se actualiza acá solo.</p>
+
+<div class="row g-3">
+    {% for cat in categorias %}
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100">
+            <div class="card-header bg-white fw-semibold">{{ cat.nombre }}</div>
+            <ul class="list-group list-group-flush">
+                {% for p in cat.productos.all %}
+                <li class="list-group-item {% if not p.activo %}text-muted{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div>
+                            <div class="fw-semibold">{{ p.nombre }}{% if not p.activo %} <span class="badge bg-light text-muted border">inactivo</span>{% endif %}</div>
+                            <div class="small">
+                                {% for v in p.variantes.all %}
+                                <span class="me-2 {% if not v.activo %}text-decoration-line-through{% endif %}">{% if v.nombre %}{{ v.nombre }}: {% endif %}{{ v.precio_referencia|moneda:0 }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <a href="{% url 'pv_producto_editar' p.pk %}" class="btn btn-sm btn-outline-primary">Editar</a>
+                    </div>
+                </li>
+                {% empty %}
+                <li class="list-group-item small text-muted">Sin productos.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-muted">El catálogo está vacío. Podés cargar productos acá o directamente al armar la carta de una jornada.</div>
+    {% endfor %}
+</div>
+
+<h4 class="mt-5">Promos guardadas</h4>
+<p class="text-muted small">Se pueden sumar a cualquier jornada desde la pantalla de carta.</p>
+<div class="list-group">
+    {% for p in promos %}
+    <div class="list-group-item d-flex justify-content-between align-items-center gap-2 {% if not p.activo %}text-muted{% endif %}">
+        <div>
+            <div class="fw-semibold">{{ p.nombre }} · {{ p.precio|moneda:0 }}</div>
+            <div class="small text-muted">{{ p.descripcion_componentes }}</div>
+        </div>
+        <a href="{% url 'pv_promo_editar' p.pk %}" class="btn btn-sm btn-outline-primary">Editar</a>
+    </div>
+    {% empty %}
+    <div class="list-group-item small text-muted">No hay promos guardadas.</div>
+    {% endfor %}
+</div>
+{% endblock %}

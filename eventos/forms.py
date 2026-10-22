@@ -25,7 +25,7 @@ class EventoForm(forms.ModelForm):
             'tipo_servicio': forms.Select(attrs={'class': 'form-select'}),
             'periodo': forms.Select(attrs={'class': 'form-select'}),
             'origen': forms.Select(attrs={'class': 'form-select'}),
-            'fecha': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'fecha': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
             'cliente': forms.TextInput(attrs={'class': 'form-control'}),
             'solicitante': forms.TextInput(attrs={'class': 'form-control'}),
             'cantidad_personas': forms.NumberInput(attrs={'class': 'form-control'}),
@@ -47,7 +47,7 @@ class EventoPresupuestoForm(forms.ModelForm):
             'solicitante': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Quién lo solicita'}),
             'cliente': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Organismo o cliente'}),
             'origen': forms.Select(attrs={'class': 'form-select'}),
-            'fecha': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'fecha': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
             'cantidad_personas': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Estimado (se ajusta solo al cargar el presupuesto)'}),
             'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Notas rápidas sobre el pedido'}),
         }
@@ -81,6 +81,11 @@ OpcionMenuFormSet = inlineformset_factory(
         'orden': forms.NumberInput(attrs={'class': 'form-control'}),
     },
     extra=3, can_delete=True
+)
+
+# Al editar un presupuesto no hacen falta filas vacías extra: se agregan con el botón "+ Agregar".
+OpcionMenuFormSetEdicion = inlineformset_factory(
+    Presupuesto, OpcionMenu, form=OpcionMenuFormSet.form, extra=0, can_delete=True,
 )
 
 
@@ -139,7 +144,7 @@ class CompraForm(forms.ModelForm):
         model = Compra
         fields = ['fecha', 'proveedor', 'evento', 'observaciones']
         widgets = {
-            'fecha': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'fecha': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
             'proveedor': forms.TextInput(attrs={'class': 'form-control'}),
             'evento': forms.Select(attrs={'class': 'form-select'}),
             'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
@@ -176,7 +181,7 @@ class PagoForm(forms.ModelForm):
         widgets = {
             'tipo_pago': forms.Select(attrs={'class': 'form-select'}),
             'numero_planilla': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 083'}),
-            'fecha': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'fecha': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
             'persona': forms.Select(attrs={'class': 'form-select'}),
             'evento': forms.Select(attrs={'class': 'form-select'}),
             'descripcion_evento': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Si no está cargado como evento'}),
@@ -196,6 +201,10 @@ ItemCostoPersonalFormSet = inlineformset_factory(
     extra=3, can_delete=True
 )
 
+ItemCostoPersonalFormSetEdicion = inlineformset_factory(
+    Presupuesto, ItemCostoPersonal, form=ItemCostoPersonalFormSet.form, extra=0, can_delete=True,
+)
+
 
 class ElementoInventarioForm(forms.ModelForm):
     class Meta:
@@ -213,8 +222,8 @@ class EnvioLavanderiaForm(forms.ModelForm):
         model = EnvioLavanderia
         fields = ['fecha_envio', 'fecha_retorno', 'proveedor', 'factura', 'observaciones']
         widgets = {
-            'fecha_envio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'fecha_retorno': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'fecha_envio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
+            'fecha_retorno': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
             'proveedor': forms.TextInput(attrs={'class': 'form-control'}),
             'factura': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
@@ -227,8 +236,8 @@ class PrestamoForm(forms.ModelForm):
         fields = ['prestado_a', 'fecha_prestamo', 'fecha_devolucion', 'observaciones']
         widgets = {
             'prestado_a': forms.TextInput(attrs={'class': 'form-control'}),
-            'fecha_prestamo': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'fecha_devolucion': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'fecha_prestamo': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
+            'fecha_devolucion': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
             'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
 
